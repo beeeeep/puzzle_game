@@ -7,7 +7,7 @@ int switches_init(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_
     int random_number_of_paths_found = roll(0, 99);
     int start_node_index = roll(0, NO_OF_3_WAY_LINES - 1);
 
-    //Reset all the nodes and switches
+    // Reset all the nodes and switches
     memset(start_nodes, 0, sizeof(int) * NO_OF_3_WAY_LINES);
     memset(end_nodes, 0, sizeof(int) * NO_OF_3_WAY_LINES);
 
@@ -18,7 +18,7 @@ int switches_init(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_
     }
     start_nodes[start_node_index] = 1;
 
-    //Find a random path for the end goal
+    // Find a random path for the end goal
     do
     {
         path_tracing_attemtps++;
@@ -141,7 +141,7 @@ int switches_randomize_possition(three_way_switch_t switches[NO_OF_3_WAY_LINES][
         }
         if (iteration_counter++ > MAX_RANDOM_ATTEMPTS)
         {
-            return 0; //cant find a path
+            return 0; // cant find a path
         }
     }
 
@@ -162,7 +162,7 @@ int switches_verify_possition(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_
     {
         if (switches[line + 1][col].possition == high_switch && pos == low_switch)
         {
-            return 0; //position not possible
+            return 0; // position not possible
         }
     }
     return 1;
@@ -269,6 +269,7 @@ void switches_distribute_power(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO
         }
     }
 }
+
 int switches_control(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE], control_index_t *control, rotary_enc_t *rotary, int *button_pushed_flag)
 {
 
@@ -281,7 +282,7 @@ int switches_control(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCH
     if (rotary->direction == 1) // right
     {
         *button_pushed_flag = 1;
-        
+
         switches[control->line][control->column].selected = false;
         // clock-wise direction
         if (control->column >= NO_OF_SWITCHES_PER_LINE - 1)
@@ -304,8 +305,8 @@ int switches_control(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCH
     }
     else if (rotary->direction == -1)
     {
-         *button_pushed_flag = 1;
- 
+        *button_pushed_flag = 1;
+
         switches[control->line][control->column].selected = false;
         // clock-wise direction
         if (control->column == 0)
@@ -330,8 +331,7 @@ int switches_control(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCH
 
     if (rotary->button == 1)
     {
-         *button_pushed_flag = 1;
-
+        *button_pushed_flag = 1;
 
         if (control->line > 0)
         {
@@ -389,4 +389,3 @@ int switches_time_get_level_time(int current_level)
 {
     return MAX_GAME_TIME_IN_MS - (((MAX_GAME_TIME_IN_MS - MIN__GAME_TIME_IN_MS) / NO_OF_LEVELS) * current_level);
 }
-
