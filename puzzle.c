@@ -52,7 +52,7 @@ int main(int argc, char **argv)
 
    for (int i = 0; i < NO_OF_SWITCHES_PER_LINE; i++)
    {
-      switch_end_points_cchmod u+xol[i] = SWITCH_INIT_COL + i * SWITCH_COL_DISTANCE;
+      switch_end_points_col[i] = SWITCH_INIT_COL + i * SWITCH_COL_DISTANCE;
    }
    for (int i = 0; i < NO_OF_3_WAY_LINES; i++)
    {
