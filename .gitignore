@@ -1,0 +1,5 @@
+puzzle
+*.o
+*.exe
+*.dll
+build/
