@@ -6,15 +6,15 @@
 #include <time.h>
 
 #include <ncurses.h>
-#include "switches.h"
+#include "switches/switches.h"
 
 WINDOW *game_win;
 
 #define WIN_X 4
 #define WIN_Y 4
 
-#define WIDTH 39
-#define HEIGHT 12
+#define WIDTH (NO_OF_SWITCHES_PER_LINE * 10) -1 
+#define HEIGHT NO_OF_3_WAY_LINES*4
 
 #define SWITCH_INIT_COL 11
 #define SWITCH_INIT_LINE 2
@@ -52,7 +52,7 @@ int main(int argc, char **argv)
 
    for (int i = 0; i < NO_OF_SWITCHES_PER_LINE; i++)
    {
-      switch_end_points_col[i] = SWITCH_INIT_COL + i * SWITCH_COL_DISTANCE;
+      switch_end_points_cchmod u+xol[i] = SWITCH_INIT_COL + i * SWITCH_COL_DISTANCE;
    }
    for (int i = 0; i < NO_OF_3_WAY_LINES; i++)
    {
@@ -88,7 +88,7 @@ int main(int argc, char **argv)
          switches_time_reset(millis_timestamp());
       }
       time_left = switches_time_calculate(millis_timestamp(), switches_time_get_level_time(current_level), 1);
-      
+
       print(switches, start_nodes, end_nodes, end_goal, time_left, current_level);
 
       if (end_nodes[end_goal] == 1 || time_left == 0)

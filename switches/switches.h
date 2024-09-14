@@ -3,9 +3,9 @@
 
 #include <stdio.h>
 #include <stdbool.h>
-#include "roll.h"
+#include "../roll/roll.h"
 #include <string.h>
-#define NO_OF_SWITCHES_PER_LINE 4
+#define NO_OF_SWITCHES_PER_LINE 5
 
 #define NO_OF_3_WAY_LINES 4
 #define MAX_GAME_TIME_IN_MS 20000
@@ -13,6 +13,7 @@
 #define NO_OF_LEVELS 20
 #define MAX_RANDOM_ATTEMPTS 65536
 #define ERROR_REPORT 1;
+#define NUMBER_OF_DISABLED_SWITCHES 3
 #define TIMESTAMP_TYPE long long
 
 
