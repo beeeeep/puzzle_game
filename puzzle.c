@@ -73,6 +73,10 @@ int main(int argc, char **argv)
    starty = (24 - HEIGHT) / 2;
 
    game_win = newwin(HEIGHT, WIDTH, starty, startx);
+   start_color();
+	init_pair(1, COLOR_RED, COLOR_BLACK);
+   init_pair(2, COLOR_YELLOW, COLOR_BLACK);
+   wbkgd(game_win, COLOR_PAIR(0));
    nodelay(game_win, TRUE);
    keypad(game_win, TRUE);
 
@@ -153,8 +157,11 @@ void print(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LIN
       for (int col = 0; col < NO_OF_SWITCHES_PER_LINE; col++)
       {
          if (switches[line][col].has_power == 1)
-         {
+         {  
+            const int color_index = (switches[line][col].switch_color == red)?1:2;
+            wattron(game_win, COLOR_PAIR(color_index));
             wprintw(game_win, "####");
+            wattroff(game_win, COLOR_PAIR(color_index));
          }
          else
          {
@@ -212,7 +219,7 @@ void print(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LIN
          }
       }
    }
-   mvwprintw(game_win, 10, 5, "GOAL: %u LVL:%02u TIME:%01u", end_goal + 1, level_no + 1, time_left);
+   mvwprintw(game_win, 11, 3, "GOAL: %u LVL:%02u TIME:%01u", end_goal + 1, level_no + 1, time_left);
    // mvwprintw(game_win, 9, 10, "%u", *col_index);
    wrefresh(game_win); /* Print it on to the real screen */
 }
