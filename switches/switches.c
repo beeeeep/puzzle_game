@@ -1,6 +1,20 @@
 #include "switches.h"
 
-int switches_init(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE], int start_nodes[NO_OF_3_WAY_LINES], int end_nodes[NO_OF_3_WAY_LINES], int end_goal)
+#include "red_switches.h"
+
+static long long switches_timestamp;
+
+
+int minimum(int a, int b)
+{
+    return (a < b) ? a : b;
+}
+
+void default_init_switch(three_way_switches_array_t switches, const int line, const int col);
+void default_init_switces(three_way_switches_array_t switches, const int num_lines, const int num_cols);
+void init_red_switches(three_way_switches_array_t switches);
+
+int switches_init(three_way_switches_array_t switches, int start_nodes[NO_OF_3_WAY_LINES], int end_nodes[NO_OF_3_WAY_LINES], int end_goal)
 {
     unsigned long path_tracing_attemtps = 0;
     int path_found_counter = 0;
@@ -22,46 +36,10 @@ int switches_init(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_
     do
     {
         path_tracing_attemtps++;
-        memset(switches, 0, sizeof(three_way_switch_t) * NO_OF_3_WAY_LINES * NO_OF_SWITCHES_PER_LINE);
-
-        //   Initialize the switches
-        for (int line = 0; line < NO_OF_3_WAY_LINES; line++)
-        {
-            for (int col = 0; col < NO_OF_SWITCHES_PER_LINE; col++)
-            {
-                switches[line][col].col = col;
-                switches[line][col].line = line;
-                switches[line][col].neighbor_switch[high_switch] = NULL;
-                switches[line][col].neighbor_switch[mid_switch] = NULL;
-                switches[line][col].neighbor_switch[low_switch] = NULL;
-
-                // Connect to top switch
-                if (line > 0 && col < NO_OF_SWITCHES_PER_LINE)
-                {
-                    switches[line][col].neighbor_switch[high_switch] = &switches[line - 1][col];
-                }
-                // connect to mid switch void switches_control(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE], char **argv)
-                if (col < NO_OF_SWITCHES_PER_LINE - 1)
-                {
-                    switches[line][col].neighbor_switch[mid_switch] = &switches[line][col + 1];
-                }
-                // connect to low switch
-                if (line < (NO_OF_3_WAY_LINES - 1) && col < NO_OF_SWITCHES_PER_LINE)
-                {
-                    switches[line][col].neighbor_switch[low_switch] = &switches[line + 1][col];
-                }
-
-                // Top line check
-                switches[line][col].position = (switch_pos_t)roll(high_switch, low_switch);
-
-                if (switches[line - 1][col].position == low_switch && line > 0)
-                {
-                    switches[line][col].position = (switch_pos_t)roll(mid_switch, low_switch);
-                }
-            }
-        }
-
+        // Initialize the switches
+        default_init_switces(switches, NO_OF_3_WAY_LINES, NO_OF_SWITCHES_PER_LINE);
         switches_connect(switches, start_nodes, end_nodes, end_goal);
+        init_red_switches(switches);
         switches_distribute_power(switches, start_nodes, end_nodes);
 
         if (end_nodes[end_goal] == 1)
@@ -96,6 +74,67 @@ int switches_init(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_
     return 1;
 }
 
+void default_init_switces(three_way_switches_array_t switches, const int num_lines, const int num_cols)
+{
+    memset(switches, 0, sizeof(three_way_switch_t) * NO_OF_3_WAY_LINES * NO_OF_SWITCHES_PER_LINE);
+    for (int line = 0; line < num_lines; line++)
+    {
+        for (int col = 0; col < num_cols; col++)
+        {
+            // Initialize the switch
+            default_init_switch(switches, line, col);                
+        }
+    }
+}
+
+void default_init_switch(three_way_switches_array_t switches, const int line, const int col)
+{
+    three_way_switch_t* sw_init = &(switches[line][col]);
+    sw_init->col = col;
+    sw_init->line = line;
+    sw_init->neighbor_switch[high_switch] = NULL;
+    sw_init->neighbor_switch[mid_switch] = NULL;
+    sw_init->neighbor_switch[low_switch] = NULL;
+    sw_init->switch_color = yellow;
+    sw_init->binded_switch_index = INVALID_CONTROL_INDEX;
+
+    // Connect to top switch
+    if (line > 0 && col < NO_OF_SWITCHES_PER_LINE)
+    {
+        sw_init->neighbor_switch[high_switch] = &switches[line - 1][col];
+    }
+    // connect to mid switch void switches_control(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE], char **argv)
+    if (col < NO_OF_SWITCHES_PER_LINE - 1)
+    {
+        sw_init->neighbor_switch[mid_switch] = &switches[line][col + 1];
+    }
+    // connect to low switch
+    if (line < (NO_OF_3_WAY_LINES - 1) && col < NO_OF_SWITCHES_PER_LINE)
+    {
+        sw_init->neighbor_switch[low_switch] = &switches[line + 1][col];
+    }
+
+    // Top line check
+    sw_init->position = (switch_pos_t)roll(high_switch, low_switch);
+
+    if (switches[line - 1][col].position == low_switch && line > 0)
+    {
+        sw_init->position = (switch_pos_t)roll(mid_switch, low_switch);
+    }
+}
+
+void init_red_switches(three_way_switches_array_t switches)
+{
+    for (int i = 0; i < NUM_RED_SWITCHES; i++)
+    {
+        const int line = red_switches_indices[i].line;
+        const int col = red_switches_indices[i].column;
+        switches[line][col].switch_color = red;
+        switches[line][col].binded_switch_index.line = red_switches_connections[i].line_b;
+        switches[line][col].binded_switch_index.column = red_switches_connections[i].col_b;
+    }
+}
+
 int switches_randomize_possition(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE], int end_nodes[NO_OF_3_WAY_LINES], int end_goal)
 {
     // switch 3 of the critical switches to a random setting
@@ -121,10 +160,10 @@ int switches_randomize_possition(three_way_switch_t switches[NO_OF_3_WAY_LINES][
         }
     }
 
-    number_of_changes = (number_of_active_switches < 3) ? number_of_active_switches : 3;
+    number_of_changes = minimum(number_of_active_switches, 3);
 
     // This is  being done in such a complex way to guarranty that 3 active switches are found and changed, previous version used to search switches in random
-    for (int i = 0; i < number_of_changes; i)
+    for (int i = 0; i < number_of_changes;)
     {
         int random_active_sw_index = roll_exclusive(0, number_of_active_switches - 1, previous_changed_sw_index, i);
 
@@ -177,7 +216,7 @@ void switches_connect(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITC
         for (int col = 0; col < NO_OF_SWITCHES_PER_LINE; col++)
         {
             // reset the connections
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < MAX_NUM_SWITCHES_TO_DISTRIBUTE_POWER; i++)
             {
                 switches[line][col].connected_to_prev[i] = NULL;
             }
@@ -192,12 +231,13 @@ void switches_connect(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITC
             switch (switches[line][col].position)
             {
             case high_switch:
-
                 switches[line][col].display = '/';
                 if (col < NO_OF_SWITCHES_PER_LINE - 1 && line > 0)
                     switches[line - 1][col + 1].connected_to_prev[low_switch] = &switches[line][col];
                 break;
-            case mid_switch: // to avoid having to create two connections per switch, if the switch on the same life has power, prioritize it over the low and high switches that might be connected
+            case mid_switch: 
+                // to avoid having to create two connections per switch, if the switch on the same life has power, 
+                // prioritize it over the low and high switches that might be connected
                 switches[line][col].display = '=';
                 if (col < NO_OF_SWITCHES_PER_LINE - 1)
                     switches[line][col + 1].connected_to_prev[mid_switch] = &switches[line][col];
@@ -235,7 +275,7 @@ void switches_distribute_power(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO
                 {
                     switches[line][col].has_power = true;
                 }
-                for (int i = 0; i < 3; i++)
+                for (int i = 0; i < MAX_NUM_SWITCHES_TO_DISTRIBUTE_POWER; i++)
                 {
                     if (switches[line][col].connected_to_prev[i] != NULL && switches[line][col].connected_to_prev[i]->has_power == true)
                     {
@@ -273,8 +313,6 @@ void switches_distribute_power(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO
 
 int switches_control(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE], control_index_t *control, rotary_enc_t *rotary, int *button_pushed_flag)
 {
-
-    static long input_timestamp;
     int low_lim = low_switch;
     int high_lim = high_switch;
 
@@ -348,11 +386,16 @@ int switches_control(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCH
                 low_lim = mid_switch;
             }
         }
-        (switches[control->line][control->column].position == low_lim) ? (switches[control->line][control->column].position = high_lim) : (switches[control->line][control->column].position++);
+        if (switches[control->line][control->column].position == low_lim)
+        {
+            switches[control->line][control->column].position = high_lim;
+        }
+        else
+        {
+            switches[control->line][control->column].position++;
+        }
     }
 }
-
-static long long switches_timestamp;
 
 int switches_time_calculate(long long current_time, unsigned int max_time_in_ms, unsigned char time_count_active_flag)
 {

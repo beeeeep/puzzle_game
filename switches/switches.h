@@ -16,6 +16,8 @@
 #define NUMBER_OF_DISABLED_SWITCHES 3
 #define TIMESTAMP_TYPE long long
 
+#define MAX_NUM_SWITCHES_TO_DISTRIBUTE_POWER 3
+
 
 typedef struct rotary_enc
 {
@@ -30,17 +32,26 @@ typedef enum
    low_switch
 } switch_pos_t;
 
+typedef enum switch_color_t
+{
+   red = 0,
+   yellow,
+} switch_color_t;
 
+typedef struct control_index_t
+{
+   int line;
+   int column;
+} control_index_t;
 
-
-static int key;
+#define INVALID_CONTROL_INDEX ((control_index_t){.line = -1, .column = -1})
 
 #define POSSIBLE_PATHS (NO_OF_SWITCHES_PER_LINE * NO_OF_3_WAY_LINES)
 
 typedef struct three_way_switch
 {
    /* data */
-   struct three_way_switch *neighbor_switch[3];
+   struct three_way_switch *neighbor_switch[MAX_NUM_SWITCHES_TO_DISTRIBUTE_POWER];
    unsigned char line;
    unsigned char col;
    bool selected;
@@ -48,22 +59,20 @@ typedef struct three_way_switch
    bool end_point;
    bool has_power;
    switch_pos_t position;
-   struct three_way_switch *connected_to_prev[3];
+   struct three_way_switch *connected_to_prev[MAX_NUM_SWITCHES_TO_DISTRIBUTE_POWER];
    char display;
+   switch_color_t switch_color;
+   control_index_t binded_switch_index;
 } three_way_switch_t;
 
-typedef struct control_index
-{
-   int line;
-   int column;
-} control_index_t;
+typedef three_way_switch_t three_way_switches_array_t[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE];
 
-int switches_init(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE], int start_nodes[NO_OF_3_WAY_LINES], int end_nodes[NO_OF_3_WAY_LINES], int end_goal);
-int switches_randomize_possition(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE], int end_nodes[NO_OF_3_WAY_LINES], int end_goal);
-void switches_connect(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE], int start_nodes[NO_OF_3_WAY_LINES], int end_nodes[NO_OF_3_WAY_LINES], int end_goal);
-void switches_distribute_power(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE], int start_nodes[NO_OF_3_WAY_LINES], int end_nodes[NO_OF_3_WAY_LINES]);
-int switches_control(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE], control_index_t *control, rotary_enc_t *rotary, int *button_pushed_flag);
-int switches_verify_possition(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE], int line, int col, switch_pos_t pos);
+int switches_init(three_way_switches_array_t switches, int start_nodes[NO_OF_3_WAY_LINES], int end_nodes[NO_OF_3_WAY_LINES], int end_goal);
+int switches_randomize_possition(three_way_switches_array_t switches, int end_nodes[NO_OF_3_WAY_LINES], int end_goal);
+void switches_connect(three_way_switches_array_t switches, int start_nodes[NO_OF_3_WAY_LINES], int end_nodes[NO_OF_3_WAY_LINES], int end_goal);
+void switches_distribute_power(three_way_switches_array_t switches, int start_nodes[NO_OF_3_WAY_LINES], int end_nodes[NO_OF_3_WAY_LINES]);
+int switches_control(three_way_switches_array_t switches, control_index_t *control, rotary_enc_t *rotary, int *button_pushed_flag);
+int switches_verify_possition(three_way_switches_array_t switches, int line, int col, switch_pos_t pos);
 int switches_time_calculate(long long current_time, unsigned int max_time_in_ms, unsigned char time_count_active_flag);
 void switches_time_reset(unsigned long current_time);
 int switches_time_get_level_time(int current_level);
