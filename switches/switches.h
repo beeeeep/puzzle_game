@@ -7,7 +7,7 @@
 #include <string.h>
 #define NO_OF_SWITCHES_PER_LINE 5
 
-#define NO_OF_3_WAY_LINES 4
+#define NO_OF_3_WAY_LINES 5
 #define MAX_GAME_TIME_IN_MS 20000
 #define MIN__GAME_TIME_IN_MS 2000
 #define NO_OF_LEVELS 20
@@ -21,7 +21,7 @@ typedef struct rotary_enc
 {
     int direction;
     unsigned char button;
-}rotary_enc_t;
+} rotary_enc_t;
 
 typedef enum
 {
@@ -47,7 +47,7 @@ typedef struct three_way_switch
    bool start_point;
    bool end_point;
    bool has_power;
-   switch_pos_t possition;
+   switch_pos_t position;
    struct three_way_switch *connected_to_prev[3];
    char display;
 } three_way_switch_t;

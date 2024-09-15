@@ -52,11 +52,11 @@ int switches_init(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_
                 }
 
                 // Top line check
-                switches[line][col].possition = (switch_pos_t)roll(high_switch, low_switch);
+                switches[line][col].position = (switch_pos_t)roll(high_switch, low_switch);
 
-                if (switches[line - 1][col].possition == low_switch && line > 0)
+                if (switches[line - 1][col].position == low_switch && line > 0)
                 {
-                    switches[line][col].possition = (switch_pos_t)roll(mid_switch, low_switch);
+                    switches[line][col].position = (switch_pos_t)roll(mid_switch, low_switch);
                 }
             }
         }
@@ -99,11 +99,11 @@ int switches_init(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_
 int switches_randomize_possition(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE], int end_nodes[NO_OF_3_WAY_LINES], int end_goal)
 {
     // switch 3 of the critical switches to a random setting
-    int previous_changed_sw_line_index[3] = {0};
-    int previous_changed_sw_col_index[3] = {0};
+    int previous_changed_sw_index[3] = {0};
+   
     int active_sw_line[NO_OF_3_WAY_LINES] = {0};
     int active_sw_col[NO_OF_SWITCHES_PER_LINE] = {0};
-
+     
     int number_of_active_switches = 0;
     int number_of_changes = 0;
     int iteration_counter = 0;
@@ -126,16 +126,17 @@ int switches_randomize_possition(three_way_switch_t switches[NO_OF_3_WAY_LINES][
     // This is  being done in such a complex way to guarranty that 3 active switches are found and changed, previous version used to search switches in random
     for (int i = 0; i < number_of_changes; i)
     {
-        int random_line_index = roll_exclusive(0, number_of_active_switches - 1, previous_changed_sw_line_index, i);
-        int random_col_index = roll_exclusive(0, number_of_active_switches - 1, previous_changed_sw_col_index, i);
+        int random_active_sw_index = roll_exclusive(0, number_of_active_switches - 1, previous_changed_sw_index, i);
 
-        int random_pos = roll_exclusive(0, 2, (int *)&(switches[active_sw_line[random_line_index]][active_sw_col[random_col_index]].possition), 1);
+        const int sampled_sw_active_line_index = active_sw_line[random_active_sw_index];
+        const int sampled_sw_active_col_index = active_sw_col[random_active_sw_index];
 
-        if (switches_verify_possition(switches, active_sw_line[random_line_index], active_sw_col[random_col_index], random_pos) == 1)
+        int random_pos = roll_exclusive(0, 2, (int *)&(switches[sampled_sw_active_line_index][sampled_sw_active_col_index].position), 1);
+
+        if (switches_verify_possition(switches, sampled_sw_active_line_index, sampled_sw_active_col_index, random_pos) == 1)
         {
-            switches[active_sw_line[random_line_index]][active_sw_col[random_col_index]].possition = random_pos;
-            previous_changed_sw_line_index[i] = random_line_index;
-            previous_changed_sw_col_index[i] = random_col_index;
+            switches[active_sw_line[random_active_sw_index]][active_sw_col[random_active_sw_index]].position = random_pos;
+            previous_changed_sw_index[i] = random_active_sw_index;
             i++;
             iteration_counter = 0;
         }
@@ -153,14 +154,14 @@ int switches_verify_possition(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_
     // Check edge cases
     if (line != 0)
     {
-        if (switches[line - 1][col].possition == low_switch && pos == high_switch)
+        if (switches[line - 1][col].position == low_switch && pos == high_switch)
         {
             return 0;
         }
     }
     if (line != NO_OF_3_WAY_LINES - 1)
     {
-        if (switches[line + 1][col].possition == high_switch && pos == low_switch)
+        if (switches[line + 1][col].position == high_switch && pos == low_switch)
         {
             return 0; // position not possible
         }
@@ -188,7 +189,7 @@ void switches_connect(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITC
         for (int col = 0; col < NO_OF_SWITCHES_PER_LINE; col++)
         {
 
-            switch (switches[line][col].possition)
+            switch (switches[line][col].position)
             {
             case high_switch:
 
@@ -244,7 +245,7 @@ void switches_distribute_power(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO
                 // Distribute power to end nodes
                 if (col == NO_OF_SWITCHES_PER_LINE - 1)
                 {
-                    switch (switches[line][col].possition)
+                    switch (switches[line][col].position)
                     {
                     case mid_switch:
                         end_nodes[line] |= (switches[line][col].has_power == true);
@@ -335,19 +336,19 @@ int switches_control(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCH
 
         if (control->line > 0)
         {
-            if (switches[control->line - 1][control->column].possition == low_switch)
+            if (switches[control->line - 1][control->column].position == low_switch)
             {
                 high_lim = mid_switch;
             }
         }
         if (control->line < NO_OF_3_WAY_LINES - 1)
         {
-            if (switches[control->line + 1][control->column].possition == high_switch)
+            if (switches[control->line + 1][control->column].position == high_switch)
             {
                 low_lim = mid_switch;
             }
         }
-        (switches[control->line][control->column].possition == low_lim) ? (switches[control->line][control->column].possition = high_lim) : (switches[control->line][control->column].possition++);
+        (switches[control->line][control->column].position == low_lim) ? (switches[control->line][control->column].position = high_lim) : (switches[control->line][control->column].position++);
     }
 }
 
