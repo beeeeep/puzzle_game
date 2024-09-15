@@ -52,7 +52,7 @@
     // check for new directives
     for (int i = 0; i < NO_OF_SERVOS; i++) {
       if (servos[i].position != servos[i].position_prev) {
-        // que possition update
+        // que position update
         servos[i].ready = 0;
         servo_queue[head_index] = i;
         head_index = (head_index < (NO_OF_SERVOS - 1)) ? head_index + 1 : 0;
