@@ -394,6 +394,13 @@ int switches_control(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCH
         {
             switches[control->line][control->column].position++;
         }
+        // if the switch is red
+        const three_way_switch_t *currentSwitch = &switches[control->line][control->column];
+        if (currentSwitch->switch_color == red)
+        {
+            // change the position of the binded switch
+            switches[currentSwitch->binded_switch_index.line][currentSwitch->binded_switch_index.column].position = currentSwitch->position;
+        }
     }
 }
 

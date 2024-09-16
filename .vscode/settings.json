@@ -4,6 +4,10 @@
         "stdlib.h": "c",
         "time.h": "c",
         "servo_controller.h": "c",
-        "servo_switches.h": "c"
+        "servo_switches.h": "c",
+        "gui.h": "c",
+        "puzzle.h": "c",
+        "switches.h": "c",
+        "misc.h": "c"
     }
 }
