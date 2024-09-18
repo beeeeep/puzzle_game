@@ -22,6 +22,8 @@ int starty = 0;
 int switch_end_points_col[NO_OF_SWITCHES_PER_LINE];
 int switch_end_points_line[NO_OF_3_WAY_LINES];
 
+bool windowNeedsRefresh = false;
+
 void initTerminalScreen()
 {
   for (int i = 0; i < NO_OF_SWITCHES_PER_LINE; i++)
@@ -56,8 +58,7 @@ void initKeyboard()
 
 void translateKeyboardKeyToRotaryEncoder(rotary_enc_t *rotary)
 {
-  int input = wgetch(game_win);
-  int key_pressed = -1;
+  int key_pressed = wgetch(game_win);
   static long long input_timestamp;
 
   if (millis_timestamp() - input_timestamp < 5)
@@ -65,9 +66,7 @@ void translateKeyboardKeyToRotaryEncoder(rotary_enc_t *rotary)
     flushinp();
   }
 
-  key_pressed = input;
-
-  switch (input)
+  switch (key_pressed)
   {
   case KEY_RIGHT:
     rotary->direction = 1;
@@ -86,12 +85,23 @@ void translateKeyboardKeyToRotaryEncoder(rotary_enc_t *rotary)
     rotary->button = 0;
   }
 }
+void refreshWindowIfNeeded()
+{
+  if (windowNeedsRefresh)
+  {
+    wrefresh(game_win); /* Print it on to the real screen */
+    windowNeedsRefresh = false;
+  }
+  else
+  {
+   windowNeedsRefresh = true;
+  }
+}
 
-void print(three_way_switches_array_t switches, int start_nodes[NO_OF_3_WAY_LINES], int end_nodes[NO_OF_3_WAY_LINES], int end_goal, int time_left, int level_no)
+void print(three_way_switches_array_t switches, int start_nodes[NO_OF_3_WAY_LINES], int end_nodes[NO_OF_3_WAY_LINES])
 {
 
   static long flash_on_timestamp;
-  static long flash_off_timestamp;
   static int flash_flag;
 
   if (millis_timestamp() - flash_on_timestamp > 200)
@@ -99,10 +109,7 @@ void print(three_way_switches_array_t switches, int start_nodes[NO_OF_3_WAY_LINE
     flash_on_timestamp = millis_timestamp();
     (flash_flag == 0) ? (flash_flag = 1) : (flash_flag = 0);
   }
-  // clear();
-  // clrtoeol();
-
-  // printw("\033[H");
+ 
   wmove(game_win, 1, 0);
 
   box(game_win, 0, 0);
@@ -182,9 +189,13 @@ void print(three_way_switches_array_t switches, int start_nodes[NO_OF_3_WAY_LINE
       }
     }
   }
+  refreshWindowIfNeeded();
+}
+
+void appendInfo(const int end_goal, const int time_left, const int level_no)
+{
   mvwprintw(game_win, 11, 3, "GOAL: %u LVL:%02u TIME:%01u", end_goal + 1, level_no + 1, time_left);
-  // mvwprintw(game_win, 9, 10, "%u", *col_index);
-  wrefresh(game_win); /* Print it on to the real screen */
+  refreshWindowIfNeeded();
 }
 
 void terminateNcursesTerminal()
@@ -200,6 +211,7 @@ void init_gui_structures(userInterface_t** gui)
   (*gui)->initVisuals = initTerminalScreen;
   (*gui)->initControls = initKeyboard;
   (*gui)->drawLevel = print;
+  (*gui)->appendInfo = appendInfo;
   (*gui)->get_controls_status = translateKeyboardKeyToRotaryEncoder;
   (*gui)->terminate = terminateNcursesTerminal;
 }
