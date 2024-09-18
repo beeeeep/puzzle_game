@@ -1,36 +1,36 @@
 #include "switches.h"
-
 #include "red_switches.h"
+
+#include "log.h"
 
 static long long switches_timestamp;
 
+static int end_goal = 0;
 
 int minimum(int a, int b)
 {
     return (a < b) ? a : b;
 }
 
+void resetEndNodes(int end_nodes[])
+{
+    memset(end_nodes, 0, sizeof(int) * NO_OF_3_WAY_LINES);
+}
+
 void default_init_switch(three_way_switches_array_t switches, const int line, const int col);
 void default_init_switces(three_way_switches_array_t switches, const int num_lines, const int num_cols);
 void init_red_switches(three_way_switches_array_t switches);
+void generateAndInitializeStartAndGoal(int start_nodes[], int end_nodes[], int *star_node_line_index, int* end_goal_index, const int current_level);
 
-int switches_init(three_way_switches_array_t switches, int start_nodes[NO_OF_3_WAY_LINES], int end_nodes[NO_OF_3_WAY_LINES], int end_goal)
+
+function_status_t switches_init(three_way_switches_array_t switches, int start_nodes[NO_OF_3_WAY_LINES], int end_nodes[NO_OF_3_WAY_LINES], const int current_level)
 {
     unsigned long path_tracing_attemtps = 0;
     int path_found_counter = 0;
     int random_number_of_paths_found = roll(0, 99);
-    int start_node_index = roll(0, NO_OF_3_WAY_LINES - 1);
-
-    // Reset all the nodes and switches
-    memset(start_nodes, 0, sizeof(int) * NO_OF_3_WAY_LINES);
-    memset(end_nodes, 0, sizeof(int) * NO_OF_3_WAY_LINES);
-
-    for (int i = 0; i < NO_OF_3_WAY_LINES; i++)
-    {
-        start_nodes[i] = 0;
-        end_nodes[i] = 0;
-    }
-    start_nodes[start_node_index] = 1;
+    int start_node_index;
+    int end_goal_index;
+    generateAndInitializeStartAndGoal(start_nodes, end_nodes, &start_node_index, &end_goal_index, current_level);
 
     // Find a random path for the end goal
     do
@@ -38,40 +38,52 @@ int switches_init(three_way_switches_array_t switches, int start_nodes[NO_OF_3_W
         path_tracing_attemtps++;
         // Initialize the switches
         default_init_switces(switches, NO_OF_3_WAY_LINES, NO_OF_SWITCHES_PER_LINE);
-        switches_connect(switches, start_nodes, end_nodes, end_goal);
+        switches_connect(switches, start_nodes, end_nodes);
         init_red_switches(switches);
         switches_distribute_power(switches, start_nodes, end_nodes);
 
-        if (end_nodes[end_goal] == 1)
+        if (end_nodes[end_goal_index] == 1)
         {
             path_found_counter++;
             path_tracing_attemtps = 0;
         }
         else if (path_tracing_attemtps >= MAX_RANDOM_ATTEMPTS) // if this is true, it means that the path tracing is stuck
         {
-#ifdef ERROR_REPORT
-            fprintf(stderr, "ERROR: path tracing stuck");
-#endif                // ERROR_REPORT
-            return 0; // return error
+            LOG_ERROR("path tracing stuck");
+            return FAILURE; // return error
         }
     } while (path_found_counter < random_number_of_paths_found);
 
     // Randomize the active switches
-    while (end_nodes[end_goal] == 1)
+    while (end_nodes[end_goal_index] == 1)
     {
-        if (switches_randomize_possition(switches, end_nodes, end_goal) == 0)
+        if (does_fail(switches_randomize_possition(switches, end_nodes, end_goal_index)))
         {
-#ifdef ERROR_REPORT
-            fprintf(stderr, "ERROR: switch randomizing stuck");
-#endif                // ERROR_REPORT
-            return 0; // return error
+            LOG_ERROR("switch randomizing stuck");
+            return FAILURE; // return error
         }
         // Run this again to redistribute power after randomizing
-        switches_connect(switches, start_nodes, end_nodes, end_goal);
+        switches_connect(switches, start_nodes, end_nodes);
         switches_distribute_power(switches, start_nodes, end_nodes);
     }
 
-    return 1;
+    return SUCCESS;
+}
+
+void init_nodes(int start_nodes[], int end_nodes[], const int star_node_line_index)
+{
+    memset(start_nodes, 0, sizeof(int) * NO_OF_3_WAY_LINES);
+    memset(end_nodes, 0, sizeof(int) * NO_OF_3_WAY_LINES);
+    start_nodes[star_node_line_index] = 1;
+}
+
+void generateAndInitializeStartAndGoal(int start_nodes[], int end_nodes[], int *star_node_line_index, int* end_goal_index, const int current_level)
+{
+    *star_node_line_index = roll(0, NO_OF_3_WAY_LINES - 1);
+    *end_goal_index = roll(0, NO_OF_3_WAY_LINES - 1);
+    end_goal = *end_goal_index;
+    // Reset all the nodes and switches
+    init_nodes(start_nodes, end_nodes, *star_node_line_index);
 }
 
 void default_init_switces(three_way_switches_array_t switches, const int num_lines, const int num_cols)
@@ -135,7 +147,7 @@ void init_red_switches(three_way_switches_array_t switches)
     }
 }
 
-int switches_randomize_possition(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE], int end_nodes[NO_OF_3_WAY_LINES], int end_goal)
+function_status_t switches_randomize_possition(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE], int end_nodes[NO_OF_3_WAY_LINES], int end_goal)
 {
     // switch 3 of the critical switches to a random setting
     int previous_changed_sw_index[3] = {0};
@@ -181,34 +193,34 @@ int switches_randomize_possition(three_way_switch_t switches[NO_OF_3_WAY_LINES][
         }
         if (iteration_counter++ > MAX_RANDOM_ATTEMPTS)
         {
-            return 0; // cant find a path
+            return FAILURE; // cant find a path
         }
     }
 
-    return 1;
+    return SUCCESS;
 }
 
-int switches_verify_possition(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE], int line, int col, switch_pos_t pos)
+bool switches_verify_possition(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE], int line, int col, switch_pos_t pos)
 {
     // Check edge cases
     if (line != 0)
     {
         if (switches[line - 1][col].position == low_switch && pos == high_switch)
         {
-            return 0;
+            return false;
         }
     }
     if (line != NO_OF_3_WAY_LINES - 1)
     {
         if (switches[line + 1][col].position == high_switch && pos == low_switch)
         {
-            return 0; // position not possible
+            return false; // position not possible
         }
     }
-    return 1;
+    return true;
 }
 
-void switches_connect(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE], int start_nodes[NO_OF_3_WAY_LINES], int end_nodes[NO_OF_3_WAY_LINES], int end_goal)
+void switches_connect(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE], int start_nodes[NO_OF_3_WAY_LINES], int end_nodes[NO_OF_3_WAY_LINES])
 {
     // Connect the switches
     for (int line = 0; line < NO_OF_3_WAY_LINES; line++)
@@ -258,10 +270,7 @@ void switches_distribute_power(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO
 {
 
     // reset the end nodes
-    for (int i = 0; i < NO_OF_3_WAY_LINES; i++)
-    {
-        end_nodes[i] = 0;
-    }
+    resetEndNodes(end_nodes);
 
     // Distribute power to switches
     for (int i = 0; i < NO_OF_3_WAY_LINES * NO_OF_SWITCHES_PER_LINE; i++)
@@ -311,7 +320,7 @@ void switches_distribute_power(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO
     }
 }
 
-int switches_control(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE], control_index_t *control, rotary_enc_t *rotary, int *button_pushed_flag)
+function_status_t switches_control(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE], control_index_t *control, rotary_enc_t *rotary, int *button_pushed_flag)
 {
     int low_lim = low_switch;
     int high_lim = high_switch;
@@ -402,17 +411,16 @@ int switches_control(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCH
             switches[currentSwitch->binded_switch_index.line][currentSwitch->binded_switch_index.column].position = currentSwitch->position;
         }
     }
+    return SUCCESS;
 }
 
-int switches_time_calculate(long long current_time, unsigned int max_time_in_ms, unsigned char time_count_active_flag)
+function_status_t switches_time_calculate(long long current_time, unsigned int max_time_in_ms, unsigned char time_count_active_flag, int *result)
 {
     int elapsed_time_ms = current_time - switches_timestamp;
     if (max_time_in_ms <= 0)
     {
-#ifdef ERROR_REPORT
-        fprintf(stderr, "Error: max_time_in_sec and fraction_of_max_time must be positive values.\n");
-#endif            // ERROR_REPORT
-        return 0; // Return an error value
+        LOG_ERROR("max_time_in_sec and fraction_of_max_time must be positive values.");
+        return FAILURE; // Return an error value
     }
 
     float percentage_elapsed = (elapsed_time_ms / (float)max_time_in_ms) * 10.0f;
@@ -420,15 +428,19 @@ int switches_time_calculate(long long current_time, unsigned int max_time_in_ms,
     // Clamp the result to the range 0-100
     if (percentage_elapsed <= 1.0f)
     {
-        return 9;
+        *result = 9;
+        return SUCCESS;
     }
     else if (percentage_elapsed >= 10.0f)
     {
         switches_timestamp = current_time;
-        return 9;
+        *result = 9;
+        return SUCCESS;
+
     }
 
-    return (int)(10 - percentage_elapsed);
+    *result = (int)(10 - percentage_elapsed);
+    return SUCCESS;
 }
 
 void switches_time_reset(unsigned long current_time)
@@ -438,5 +450,16 @@ void switches_time_reset(unsigned long current_time)
 
 int switches_time_get_level_time(int current_level)
 {
-    return MAX_GAME_TIME_IN_MS - (((MAX_GAME_TIME_IN_MS - MIN__GAME_TIME_IN_MS) / NO_OF_LEVELS) * current_level);
+    return MAX_GAME_TIME_IN_MS - (((MAX_GAME_TIME_IN_MS - MIN_GAME_TIME_IN_MS) / NO_OF_LEVELS) * current_level);
+}
+
+int switches_get_level_max_movements(int current_level)
+{
+    // compute minimum amount of memovements for level
+    return MAX_GAME_MOVEMENTS - (((MAX_GAME_MOVEMENTS - MIN_GAME_MOVEMENTS) / NO_OF_LEVELS) * current_level);
+}
+
+int switches_get_end_goal()
+{
+    return end_goal;
 }
