@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-void roll_init(void)
+void roll_init()
 {
    srand(time(NULL));
 }
