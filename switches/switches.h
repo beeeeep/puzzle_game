@@ -3,7 +3,6 @@
 
 #include <stdio.h>
 #include <stdbool.h>
-#include "../roll/roll.h"
 #include "misc.h"
 #include <string.h>
 
@@ -76,7 +75,7 @@ function_status_t switches_randomize_possition(three_way_switches_array_t switch
 void switches_connect(three_way_switches_array_t switches, int start_nodes[NO_OF_3_WAY_LINES], int end_nodes[NO_OF_3_WAY_LINES]);
 void switches_distribute_power(three_way_switches_array_t switches, int start_nodes[NO_OF_3_WAY_LINES], int end_nodes[NO_OF_3_WAY_LINES]);
 function_status_t switches_control(three_way_switches_array_t switches, control_index_t *control, rotary_enc_t *rotary, int *button_pushed_flag);
-bool switches_verify_possition(three_way_switches_array_t switches, int line, int col, switch_pos_t pos);
+bool switches_verify_position(three_way_switches_array_t switches, int line, int col, switch_pos_t pos);
 function_status_t switches_time_calculate(long long current_time, unsigned int max_time_in_ms, unsigned char time_count_active_flag, int *result);
 void switches_time_reset(unsigned long current_time);
 int switches_time_get_level_time(int current_level);

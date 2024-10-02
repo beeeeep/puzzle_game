@@ -184,7 +184,7 @@ function_status_t switches_randomize_possition(three_way_switch_t switches[NO_OF
 
         int random_pos = roll_exclusive(0, 2, (int *)&(switches[sampled_sw_active_line_index][sampled_sw_active_col_index].position), 1);
 
-        if (switches_verify_possition(switches, sampled_sw_active_line_index, sampled_sw_active_col_index, random_pos) == 1)
+        if (switches_verify_position(switches, sampled_sw_active_line_index, sampled_sw_active_col_index, random_pos) == 1)
         {
             switches[active_sw_line[random_active_sw_index]][active_sw_col[random_active_sw_index]].position = random_pos;
             previous_changed_sw_index[i] = random_active_sw_index;
@@ -200,7 +200,7 @@ function_status_t switches_randomize_possition(three_way_switch_t switches[NO_OF
     return SUCCESS;
 }
 
-bool switches_verify_possition(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE], int line, int col, switch_pos_t pos)
+bool switches_verify_position(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE], int line, int col, switch_pos_t pos)
 {
     // Check edge cases
     if (line != 0)
