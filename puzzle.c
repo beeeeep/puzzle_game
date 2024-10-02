@@ -2,6 +2,7 @@
 #include "gui.h"
 #include "misc.h"
 #include "log.h"
+#include "roll.h"
 
 #include <stdlib.h>
 
@@ -30,11 +31,12 @@ int main(int argc, char **argv)
    rotary_enc_t rotary;
    int movements_left = 4;
    int time_left = 0;
-   int end_goal = roll(0, NO_OF_SWITCHES_PER_LINE - 1);
+   int end_goal;
    int current_level = 0;
    int button_pushed_flag = 0;
+   roll_init();
 
-   if (does_fail(switches_init(switches, start_nodes, end_nodes, end_goal)))
+   if (does_fail(switches_init(switches, start_nodes, end_nodes, current_level)))
    {
       return 1;
    }
