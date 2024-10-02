@@ -128,10 +128,7 @@ void print(three_way_switches_array_t switches, int start_nodes[NO_OF_3_WAY_LINE
     {
       if (switches[line][col].has_power == 1)
       {
-        const int color_index = (switches[line][col].switch_color == red) ? 1 : 2;
-        wattron(game_win, COLOR_PAIR(color_index));
         wprintw(game_win, "####");
-        wattroff(game_win, COLOR_PAIR(color_index));
       }
       else
       {
@@ -144,7 +141,10 @@ void print(three_way_switches_array_t switches, int start_nodes[NO_OF_3_WAY_LINE
       }
       else
       {
+        const int color_index = (switches[line][col].switch_color == red) ? 1 : 2;
+        wattron(game_win, COLOR_PAIR(color_index));
         wprintw(game_win, "*%c*", switches[line][col].display);
+        wattroff(game_win, COLOR_PAIR(color_index));
       }
     }
 
@@ -172,7 +172,10 @@ void print(three_way_switches_array_t switches, int start_nodes[NO_OF_3_WAY_LINE
         }
         else
         {
+          const int color_index = (switches[line][col].switch_color == red) ? 1 : 2;
+          wattron(game_win, COLOR_PAIR(color_index));
           mvwprintw(game_win, switch_end_points_line[line] - 1, switch_end_points_col[col], "/");
+          wattroff(game_win, COLOR_PAIR(color_index));
         }
       }
 
@@ -184,7 +187,10 @@ void print(three_way_switches_array_t switches, int start_nodes[NO_OF_3_WAY_LINE
         }
         else
         {
+          const int color_index = (switches[line][col].switch_color == red) ? 1 : 2;
+          wattron(game_win, COLOR_PAIR(color_index));
           mvwprintw(game_win, switch_end_points_line[line] + 1, switch_end_points_col[col], "\\");
+          wattroff(game_win, COLOR_PAIR(color_index));
         }
       }
     }
