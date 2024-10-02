@@ -1,11 +1,18 @@
 #include "switches.h"
 #include "red_switches.h"
+#include "roll.h"
 
 #include "log.h"
 
 static long long switches_timestamp;
 
 static int end_goal = 0;
+
+int mod(int a, int b)
+{
+    int r = a % b;
+    return r < 0 ? r + b : r;
+}
 
 int minimum(int a, int b)
 {
@@ -21,6 +28,10 @@ void default_init_switch(three_way_switches_array_t switches, const int line, co
 void default_init_switces(three_way_switches_array_t switches, const int num_lines, const int num_cols);
 void init_red_switches(three_way_switches_array_t switches);
 void generateAndInitializeStartAndGoal(int start_nodes[], int end_nodes[], int *star_node_line_index, int* end_goal_index, const int current_level);
+void redistribute_power(three_way_switches_array_t switches, int start_nodes[], int end_nodes[]);
+
+void getPossibleSwitchPositions(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE], const int line, const int column, int possibleSwitchPositions[3]);
+int getNextSwitchPosition(int possible_controls[3], const int current_position);
 
 
 function_status_t switches_init(three_way_switches_array_t switches, int start_nodes[NO_OF_3_WAY_LINES], int end_nodes[NO_OF_3_WAY_LINES], const int current_level)
@@ -31,7 +42,8 @@ function_status_t switches_init(three_way_switches_array_t switches, int start_n
     int start_node_index;
     int end_goal_index;
     generateAndInitializeStartAndGoal(start_nodes, end_nodes, &start_node_index, &end_goal_index, current_level);
-
+    int min_number_of_steps_for_level = switches_get_level_max_movements(current_level);
+    
     // Find a random path for the end goal
     do
     {
@@ -41,7 +53,7 @@ function_status_t switches_init(three_way_switches_array_t switches, int start_n
         switches_connect(switches, start_nodes, end_nodes);
         init_red_switches(switches);
         switches_distribute_power(switches, start_nodes, end_nodes);
-
+        break;
         if (end_nodes[end_goal_index] == 1)
         {
             path_found_counter++;
@@ -62,9 +74,7 @@ function_status_t switches_init(three_way_switches_array_t switches, int start_n
             LOG_ERROR("switch randomizing stuck");
             return FAILURE; // return error
         }
-        // Run this again to redistribute power after randomizing
-        switches_connect(switches, start_nodes, end_nodes);
-        switches_distribute_power(switches, start_nodes, end_nodes);
+        redistribute_power(switches, start_nodes, end_nodes);
     }
 
     return SUCCESS;
@@ -109,7 +119,7 @@ void default_init_switch(three_way_switches_array_t switches, const int line, co
     sw_init->neighbor_switch[low_switch] = NULL;
     sw_init->switch_color = yellow;
     sw_init->binded_switch_index = INVALID_CONTROL_INDEX;
-
+    sw_init->has_power = false;
     // Connect to top switch
     if (line > 0 && col < NO_OF_SWITCHES_PER_LINE)
     {
@@ -268,150 +278,127 @@ void switches_connect(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITC
 
 void switches_distribute_power(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE], int start_nodes[NO_OF_3_WAY_LINES], int end_nodes[NO_OF_3_WAY_LINES])
 {
-
     // reset the end nodes
     resetEndNodes(end_nodes);
 
     // Distribute power to switches
-    for (int i = 0; i < NO_OF_3_WAY_LINES * NO_OF_SWITCHES_PER_LINE; i++)
+    int lineIndex = -1;
+    for (int i = 0; i < NO_OF_3_WAY_LINES; ++i)
     {
-        for (int line = 0; line < NO_OF_3_WAY_LINES; line++)
-        {
-            for (int col = 0; col < NO_OF_SWITCHES_PER_LINE; col++)
-            {
-                switches[line][col].has_power = false;
-                if (col == 0 && start_nodes[line] == 1)
-                {
-                    switches[line][col].has_power = true;
-                }
-                for (int i = 0; i < MAX_NUM_SWITCHES_TO_DISTRIBUTE_POWER; i++)
-                {
-                    if (switches[line][col].connected_to_prev[i] != NULL && switches[line][col].connected_to_prev[i]->has_power == true)
-                    {
-                        switches[line][col].has_power = true;
-                    }
-                }
-                // Distribute power to end nodes
-                if (col == NO_OF_SWITCHES_PER_LINE - 1)
-                {
-                    switch (switches[line][col].position)
-                    {
-                    case mid_switch:
-                        end_nodes[line] |= (switches[line][col].has_power == true);
-                        break;
-                    case low_switch:
-                        if (line < NO_OF_3_WAY_LINES - 1)
-                        {
-                            end_nodes[line + 1] |= (switches[line][col].has_power == true);
-                        }
-                        break;
-                    case high_switch:
-                        if (line > 0)
-                        {
-                            end_nodes[line - 1] |= (switches[line][col].has_power == true);
-                        }
-                        break;
-                    default:
-                        break;
-                    }
-                }
-            }
-        }
+       if (start_nodes[i] != 0)
+       {
+           lineIndex = i;
+           break;
+       }
     }
+
+    if (lineIndex == -1) {
+        LOG_ERROR("No active node in start_nodes found");
+        return;
+    }
+    switches[lineIndex][0].has_power = true;
+    for (int col = 0; col < NO_OF_SWITCHES_PER_LINE -1; col++)
+    {
+        switch (switches[lineIndex][col].position)
+        {
+            case mid_switch:
+                break;
+            case low_switch:
+                if (lineIndex < NO_OF_3_WAY_LINES - 1)
+                {
+                    lineIndex++;
+                }
+                break;
+            case high_switch:
+                if (lineIndex > 0)
+                {
+                    lineIndex--;
+                }
+                break;
+            default:
+                LOG_WARNING("Invalid switch position");
+                break;
+        }
+        switches[lineIndex][col+1].has_power = true;
+    }
+    end_nodes[lineIndex] = 1;
+}
+
+void redistribute_power(three_way_switches_array_t switches, int start_nodes[], int end_nodes[])
+{
+    switches_connect(switches, start_nodes, end_nodes);
+    switches_distribute_power(switches, start_nodes, end_nodes);
 }
 
 function_status_t switches_control(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE], control_index_t *control, rotary_enc_t *rotary, int *button_pushed_flag)
 {
-    int low_lim = low_switch;
-    int high_lim = high_switch;
-
+    switches[control->line][control->column].selected = false;
     // Setup col and line index for user control
-
-    if (rotary->direction == 1) // right
+    const int diff = control->column + rotary->direction;
+    if (rotary->direction == 1)
     {
         *button_pushed_flag = 1;
-
-        switches[control->line][control->column].selected = false;
-        // clock-wise direction
-        if (control->column >= NO_OF_SWITCHES_PER_LINE - 1)
-        {
-            if (control->line < NO_OF_3_WAY_LINES - 1)
-            {
-                control->column = 0;
-                control->line++;
-            }
-            else
-            {
-                control->column = 0;
-                control->line = 0;
-            }
-        }
-        else
-        {
-            control->column++;
-        }
+        control->column = mod(diff, NO_OF_SWITCHES_PER_LINE);
+        control->line += diff / NO_OF_SWITCHES_PER_LINE;
+        control->line = control->line % NO_OF_3_WAY_LINES;
     }
     else if (rotary->direction == -1)
     {
         *button_pushed_flag = 1;
-
-        switches[control->line][control->column].selected = false;
-        // clock-wise direction
-        if (control->column == 0)
-        {
-            if (control->line > 0)
-            {
-                control->column = NO_OF_SWITCHES_PER_LINE - 1;
-                control->line--;
-            }
-            else
-            {
-                control->column = NO_OF_SWITCHES_PER_LINE - 1;
-                control->line = NO_OF_3_WAY_LINES - 1;
-            }
-        }
-        else
-        {
-            control->column--;
-        }
+        control->column = mod(diff, NO_OF_SWITCHES_PER_LINE);
+        control->line -= (diff < 0);
+        control->line = mod(control->line, NO_OF_3_WAY_LINES);
     }
-    switches[control->line][control->column].selected = true;
 
-    if (rotary->button == 1)
+    three_way_switch_t *currentSwitch = &switches[control->line][control->column];
+    currentSwitch->selected = true;
+
+    if (rotary->button == 1) // if about to change position
     {
         *button_pushed_flag = 1;
-
-        if (control->line > 0)
-        {
-            if (switches[control->line - 1][control->column].position == low_switch)
-            {
-                high_lim = mid_switch;
-            }
-        }
-        if (control->line < NO_OF_3_WAY_LINES - 1)
-        {
-            if (switches[control->line + 1][control->column].position == high_switch)
-            {
-                low_lim = mid_switch;
-            }
-        }
-        if (switches[control->line][control->column].position == low_lim)
-        {
-            switches[control->line][control->column].position = high_lim;
-        }
-        else
-        {
-            switches[control->line][control->column].position++;
-        }
+        int possibleSwitchPositions[3];
+        getPossibleSwitchPositions(switches, control->line, control->column, possibleSwitchPositions);
+        currentSwitch->position = getNextSwitchPosition(possibleSwitchPositions, currentSwitch->position);
         // if the switch is red
-        const three_way_switch_t *currentSwitch = &switches[control->line][control->column];
         if (currentSwitch->switch_color == red)
         {
-            // change the position of the binded switch
-            switches[currentSwitch->binded_switch_index.line][currentSwitch->binded_switch_index.column].position = currentSwitch->position;
+            // change the position of the binded switch if able
+            getPossibleSwitchPositions(switches, currentSwitch->binded_switch_index.line, currentSwitch->binded_switch_index.column, possibleSwitchPositions);
+            if (possibleSwitchPositions[currentSwitch->position] == 1)
+            {
+                switches[currentSwitch->binded_switch_index.line][currentSwitch->binded_switch_index.column].position = currentSwitch->position;
+            }
         }
     }
     return SUCCESS;
+}
+
+void getPossibleSwitchPositions(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE], const int line, const int column, int possibleSwitchPositions[3])
+{
+    possibleSwitchPositions[0] = 0;
+    possibleSwitchPositions[1] = 1;
+    possibleSwitchPositions[2] = 0;
+
+    if (line > 0 && switches[line-1][column].position != low_switch)
+    {
+        possibleSwitchPositions[0] = 1;
+    }
+    if (line < NO_OF_3_WAY_LINES - 1 && switches[line+1][column].position != high_switch)
+    {
+        possibleSwitchPositions[2] = 1;
+    }
+
+}
+
+int getNextSwitchPosition(int possibleSwitchPositions[3], const int current_position)
+{   
+    // assume possibleSwitchPositions always has possibleSwitchPositions[1] = 1
+    int nextSwitchPosition = (current_position + 1) % 3;
+    while(possibleSwitchPositions[nextSwitchPosition] != 1)
+    {
+        nextSwitchPosition = (nextSwitchPosition + 1) % 3;
+    }
+    return nextSwitchPosition;
 }
 
 function_status_t switches_time_calculate(long long current_time, unsigned int max_time_in_ms, unsigned char time_count_active_flag, int *result)
