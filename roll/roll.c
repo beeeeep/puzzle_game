@@ -1,37 +1,38 @@
 #include "roll.h"
 
-void roll_init(void)
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+void roll_init()
 {
-srand(time(NULL));
+   srand(time(NULL));
 }
 
-
-int roll(int min, int max)
+/**
+ * @brief returns a random integer number between (and including) min and max
+ * 
+ */
+int roll(const int min, const int max)
 {
    return min + rand() % (max - min + 1);
 }
-
-int roll_exclusive(int min, int max, int *excl_values_list, int excl_values_no)
+/**
+ * @brief returns a random integer number between (and including) min and max excluding the values in the excl_values_list
+ * 
+ */
+int roll_exclusive(const int min, const int max, const int excl_values_list[], const int number_excl_values)
 {
    int random_val = 0;
    int redo_flag = 0;
    do
    {
       redo_flag = 0;
-      random_val = min + rand() % (max - min + 1);
+      random_val = roll(min, max);
 
-      for (int i = 0; i < excl_values_no; i++)
+      for (int i = 0; i < number_excl_values; i++)
       {
-         int excl_value;
-
-         if (excl_values_no == 1)
-         {
-            excl_value = *excl_values_list;
-         }
-         else
-         {
-            excl_value = excl_values_list[i];
-         }
+         const int excl_value = excl_values_list[i];
 
          if (random_val == excl_value)
          {

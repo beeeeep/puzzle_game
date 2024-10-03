@@ -2,7 +2,7 @@
 #define SERVO_CONTROLLER_H
 
 #ifdef __cplusplus
- extern "C" {
+extern "C" {
 #endif
 
 #include <stdio.h>
@@ -34,8 +34,6 @@ typedef struct servo_motor
     unsigned char channel;
     unsigned int pc9685_id;
 } servo_motor_t;
-
-
 
 
 void servo_ctrl_init(milliseconds_t millis_func_p,servo_ctrl_set_pwm_t servo_ctrl_set_pwm_func_p);
