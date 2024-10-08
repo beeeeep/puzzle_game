@@ -281,6 +281,14 @@ void switches_distribute_power(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO
     // reset the end nodes
     resetEndNodes(end_nodes);
 
+    // deactivate all switches
+    for (int line = 0; line < NO_OF_3_WAY_LINES; ++line)
+    {
+        for (int col = 1; col < NO_OF_SWITCHES_PER_LINE; ++col)
+        {
+            switches[line][col].has_power = false;
+        }
+    }
     // Distribute power to switches
     int lineIndex = -1;
     for (int i = 0; i < NO_OF_3_WAY_LINES; ++i)
