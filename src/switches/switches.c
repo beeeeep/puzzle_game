@@ -1,8 +1,15 @@
 #include "switches.h"
+
+#ifdef CMAKE_BUILD
 #include "red_switches.h"
 #include "roll.h"
-
 #include "log.h"
+#else
+#include "red_switches.h"
+#include "../roll/roll.h"
+#include "../log.h"
+#endif
+
 
 static long long switches_timestamp;
 

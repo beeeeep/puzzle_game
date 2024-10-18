@@ -1,6 +1,10 @@
 #ifndef MISC_H
 #define MISC_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum
 {
     SUCCESS = 0,
@@ -31,5 +35,9 @@ typedef enum
       }
 
 long long millis_timestamp();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // MISC_H

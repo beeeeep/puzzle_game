@@ -1,9 +1,17 @@
 #ifndef PUZZLE_H
 #define PUZZLE_H
 
-#include "switches/switches.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-typedef struct userInterface_t
+#include "switches/switches.h"
+#include "gui/gui.h"
+#include "misc.h"
+#include "log.h"
+#include "roll/roll.h"
+
+typedef struct userInterface
 {
   void (*initVisuals)();
   void (*initControls)();
@@ -17,5 +25,9 @@ typedef struct game_state_t
 {
  int a;
 } game_state_t;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // PUZZLE_H

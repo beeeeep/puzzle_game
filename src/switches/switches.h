@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <stdbool.h>
-#include "misc.h"
+#include "../misc.h"
 #include <string.h>
 
 #define NO_OF_SWITCHES_PER_LINE 5

@@ -1,12 +1,11 @@
 #ifndef LED_CONTROLLER_H
 #define LED_CONTROLLER_H
 
-#include <stdio.h>
-
 #ifdef __cplusplus
- extern "C" {
+extern "C" {
 #endif
 
+#include <stdio.h>
 #define NO_OF_SWITCH_LEDS_PER_LINE 5
 #define NO_OF_SWITCH_LEDS_LINES 5
 
@@ -81,15 +80,15 @@ typedef void (*led_bar_static_set_state_t) (unsigned char device_no, unsigned ch
 typedef void (*led_lamp_set_state_t) (unsigned char device_no, unsigned char channel, unsigned char state);
 typedef unsigned long (*milliseconds_t) (void);
 
-void led_controller_init(milliseconds_t millis_p, led_bar_set_pwm_duty_cycle_t led_bar_set_pwm_duty_cycle_p, led_bar_static_set_state_t led_bar_static_set_state_p, led_lamp_set_state_t led_lamp_set_state_p);
+void led_controller_init(milliseconds_t millis_p, led_bar_set_pwm_duty_cycle_t led_bar_set_pwm_duty_cycle_p,
+    led_bar_static_set_state_t led_bar_static_set_state_p, led_lamp_set_state_t led_lamp_set_state_p);
 
-void led_controller_update(leds_ctrl_str_t led_controller_str);
+void led_controller_update(leds_ctrl_str_t *led_controller_str); 
 
 void led_controller_set_ledbars_static_power(unsigned char power);
 
-
 #ifdef __cplusplus
- }
+}
 #endif
 
 #endif 

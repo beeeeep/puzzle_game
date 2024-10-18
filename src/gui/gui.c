@@ -1,4 +1,7 @@
 #include "gui.h"
+
+#ifdef CMAKE_BUILD
+
 #include "switches.h"
 #include "misc.h"
 
@@ -15,6 +18,9 @@
 #define SWITCH_INIT_LINE 2
 #define SWITCH_COL_DISTANCE 7
 #define SWITCH_LINE_DISTANCE 2
+
+
+
 
 WINDOW *game_win;
 int startx = 0;
@@ -227,3 +233,6 @@ void delete_gui_structures(userInterface_t** gui)
   free(*gui);
   *gui = NULL;
 }
+
+
+#endif

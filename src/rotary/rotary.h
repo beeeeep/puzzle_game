@@ -1,6 +1,10 @@
 #ifndef  ROTARY_H
 #define ROTARY_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define  BUTTON_DEBOUNCE_TIME_MS 200
 
 typedef enum
@@ -24,8 +28,9 @@ typedef struct rotary
  *  \{
  */
 
-typedef char (*Get_rotary_pin_state_t)(void);
+typedef unsigned char (*Get_rotary_pin_state_t)(void);
 typedef void (*Rotary_interrupt_callback_t) (void);
+typedef unsigned long (*milliseconds_t) (void);
 
 /** Initialization function. Passes the pin handling function pointers to the library 
  *
@@ -35,7 +40,7 @@ typedef void (*Rotary_interrupt_callback_t) (void);
  *  \param[in] time_in_millis  Pointer to function that reads millis timers value
  *
  */
-void Rotary_init(Get_rotary_pin_state_t get_A_pin_state, Get_rotary_pin_state_t get_B_pin_state, Get_rotary_pin_state_t get_button_pin_state,uint32_t *time_in_millis);
+void Rotary_init(Get_rotary_pin_state_t get_A_pin_state, Get_rotary_pin_state_t get_B_pin_state, Get_rotary_pin_state_t get_button_pin_state,milliseconds_t millis_wrapper);
 
 /** Main function. Passes the values of the rotary encoder to the struct
  *
@@ -56,5 +61,8 @@ void Rotary_AB_pin_callback_fuction(void);
  */
 void Rotary_button_pin_callback_fuction(void);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif // ! ROTARY_H

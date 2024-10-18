@@ -1,11 +1,5 @@
 #include "puzzle.h"
-#include "gui.h"
-#include "misc.h"
-#include "log.h"
-#include "roll.h"
-
 #include <stdlib.h>
-
 
 userInterface_t* gui;
 

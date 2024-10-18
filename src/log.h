@@ -1,6 +1,10 @@
 #ifndef LOG_H
 #define LOG_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdio.h>
 
 #ifndef LOG_CHANNGEL
@@ -15,6 +19,10 @@
   #define LOG_ERROR(fmt, ...)
   #define LOG_WARNING(fmt, ...)
   #define LOG_INFO(fmt, ...)
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif // LOG_H

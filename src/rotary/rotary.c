@@ -7,14 +7,14 @@ static volatile button_state_t button_state = BUTTON_RELEASED;
 static Get_rotary_pin_state_t get_rotary_A_pin_state;
 static Get_rotary_pin_state_t get_rotary_B_pin_state;
 static Get_rotary_pin_state_t get_rotary_button_pin_state;
-static unsigned int* millis;
+milliseconds_t milliseconds;
 
 void Rotary_init(Get_rotary_pin_state_t get_A_pin_state, Get_rotary_pin_state_t get_B_pin_state,
-    Get_rotary_pin_state_t get_button_pin_state, unsigned int* time_in_millis) {
+    Get_rotary_pin_state_t get_button_pin_state, milliseconds_t millis_wrapper) {
     get_rotary_A_pin_state      = get_A_pin_state;
     get_rotary_B_pin_state      = get_B_pin_state;
     get_rotary_button_pin_state = get_button_pin_state;
-    millis                      = time_in_millis;
+    milliseconds                      = millis_wrapper;
 }
 
 void Rotary_get_status(rotary_t* status) {
@@ -24,10 +24,10 @@ void Rotary_get_status(rotary_t* status) {
     Rotary_button_pin_callback_fuction();
     if (button_state == BUTTON_HOLDING_DOWN && button_read_flag == 0) {
         status->button                 = 1;
-        status->button_hold_time_in_ms = ((*millis) - hold_timestamp);
+        status->button_hold_time_in_ms = (milliseconds() - hold_timestamp);
         button_read_flag               = 1;
     } else if (button_state == BUTTON_HOLDING_DOWN) {
-        status->button_hold_time_in_ms = ((*millis) - hold_timestamp);
+        status->button_hold_time_in_ms = (milliseconds() - hold_timestamp);
         status->button                 = 0;
     } else {
         status->button                 = 0;
@@ -65,15 +65,15 @@ void Rotary_button_pin_callback_fuction(void) {
 
     switch (button_state) {
     case BUTTON_RELEASED:
-        if (buttonpin_state == 0 && (*millis) - timestamp_on > 20) {
+        if (buttonpin_state == 0 && milliseconds() - timestamp_on > 20) {
             button_state   = BUTTON_HOLDING_DOWN;
-            hold_timestamp = (*millis);
+            hold_timestamp = milliseconds();
         }
         break;
     case BUTTON_HOLDING_DOWN:
         if (buttonpin_state == 1) {
             button_state = BUTTON_RELEASED;
-            timestamp_on = (*millis);
+            timestamp_on = milliseconds();
         }
         break;
     default:

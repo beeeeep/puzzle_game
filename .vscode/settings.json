@@ -9,6 +9,9 @@
         "puzzle.h": "c",
         "switches.h": "c",
         "misc.h": "c",
-        "roll.h": "c"
+        "roll.h": "c",
+        "stdio.h": "c",
+        "red_switches.h": "c",
+        "log.h": "c"
     }
 }
