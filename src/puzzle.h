@@ -6,7 +6,6 @@ extern "C" {
 #endif
 
 #include "switches/switches.h"
-#include "gui/gui.h"
 #include "misc.h"
 #include "log.h"
 #include "roll/roll.h"

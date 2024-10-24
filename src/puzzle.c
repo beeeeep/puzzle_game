@@ -1,4 +1,5 @@
 #include "puzzle.h"
+#include "gui/gui.h"
 #include <stdlib.h>
 
 userInterface_t* gui;
