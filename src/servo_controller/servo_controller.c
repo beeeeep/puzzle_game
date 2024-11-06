@@ -15,7 +15,7 @@ void servo_ctrl_init(milliseconds_t millis_func_p, servo_ctrl_set_pwm_t servo_ct
     servo_ctrl_set_pwm_func = servo_ctrl_set_pwm_func_p;
 }
 
-void servo_ctrl_add_device(servo_motor_t servos[NO_OF_SERVOS], unsigned char device_index, unsigned int pc9685_id,
+void servo_ctrl_add_device(servo_motor_t servos[NO_OF_SERVOS], unsigned char device_index, unsigned char pc9685_id,
     unsigned char channel, unsigned int high_pos_value, unsigned int center_pos_value, unsigned int low_pos_value) {
     servos[device_index].pc9685_id        = pc9685_id;
     servos[device_index].channel          = channel;
