@@ -104,8 +104,38 @@ void refreshWindowIfNeeded()
   }
 }
 
-void print(three_way_switches_array_t switches, int start_nodes[NO_OF_3_WAY_LINES], int end_nodes[NO_OF_3_WAY_LINES])
+void set_switches_display_character(three_way_switches_array_t switches)
 {
+    // Connect the switches
+    for (int line = 0; line < NO_OF_3_WAY_LINES; line++)
+    {
+        for (int col = 0; col < NO_OF_SWITCHES_PER_LINE; col++)
+        {
+            switch (switches[line][col].position)
+            {
+            case high_switch:
+                switches[line][col].display = '/';
+                break;
+            case mid_switch: 
+                // to avoid having to create two connections per switch, if the switch on the same life has power, 
+                // prioritize it over the low and high switches that might be connected
+                switches[line][col].display = '=';
+                break;
+            case low_switch:
+                switches[line][col].display = '\\';
+                break;
+            default:
+                switches[line][col].display = 'X';
+            }
+        }
+    }
+}
+
+void print(const map_t * map)
+{
+  set_switches_display_character(map->switches);
+  const int * start_nodes = map->start_nodes;
+  const int * end_nodes = map->end_nodes;
 
   static long flash_on_timestamp;
   static int flash_flag;
@@ -132,7 +162,7 @@ void print(three_way_switches_array_t switches, int start_nodes[NO_OF_3_WAY_LINE
     }
     for (int col = 0; col < NO_OF_SWITCHES_PER_LINE; col++)
     {
-      if (switches[line][col].has_power == 1)
+      if (map->switches[line][col].has_power == 1)
       {
         wprintw(game_win, "####");
       }
@@ -141,15 +171,15 @@ void print(three_way_switches_array_t switches, int start_nodes[NO_OF_3_WAY_LINE
         wprintw(game_win, "----");
       }
 
-      if (flash_flag && switches[line][col].selected == true)
+      if (flash_flag && map->switches[line][col].selected == true)
       {
         wprintw(game_win, "* *");
       }
       else
       {
-        const int color_index = (switches[line][col].switch_color == red) ? 1 : 2;
+        const int color_index = (map->switches[line][col].switch_color == red) ? 1 : 2;
         wattron(game_win, COLOR_PAIR(color_index));
-        wprintw(game_win, "*%c*", switches[line][col].display);
+        wprintw(game_win, "*%c*", map->switches[line][col].display);
         wattroff(game_win, COLOR_PAIR(color_index));
       }
     }
@@ -170,30 +200,30 @@ void print(three_way_switches_array_t switches, int start_nodes[NO_OF_3_WAY_LINE
 
     for (int col = 0; col < NO_OF_SWITCHES_PER_LINE; col++)
     {
-      if (switches[line][col].display == '/')
+      if (map->switches[line][col].display == '/')
       {
-        if (flash_flag && switches[line][col].selected == true)
+        if (flash_flag && map->switches[line][col].selected == true)
         {
           mvwprintw(game_win, switch_end_points_line[line] - 1, switch_end_points_col[col], " ");
         }
         else
         {
-          const int color_index = (switches[line][col].switch_color == red) ? 1 : 2;
+          const int color_index = (map->switches[line][col].switch_color == red) ? 1 : 2;
           wattron(game_win, COLOR_PAIR(color_index));
           mvwprintw(game_win, switch_end_points_line[line] - 1, switch_end_points_col[col], "/");
           wattroff(game_win, COLOR_PAIR(color_index));
         }
       }
 
-      if (switches[line][col].display == '\\')
+      if (map->switches[line][col].display == '\\')
       {
-        if (flash_flag && switches[line][col].selected == true)
+        if (flash_flag && map->switches[line][col].selected == true)
         {
           mvwprintw(game_win, switch_end_points_line[line] + 1, switch_end_points_col[col], " ");
         }
         else
         {
-          const int color_index = (switches[line][col].switch_color == red) ? 1 : 2;
+          const int color_index = (map->switches[line][col].switch_color == red) ? 1 : 2;
           wattron(game_win, COLOR_PAIR(color_index));
           mvwprintw(game_win, switch_end_points_line[line] + 1, switch_end_points_col[col], "\\");
           wattroff(game_win, COLOR_PAIR(color_index));
