@@ -10,10 +10,16 @@
 #include "../log.h"
 #endif
 
+// for NUMBER_OF_MAPS_PER_MOVE look the file:  tools/numMovements.txt
+#define NUMBER_OF_MAPS_PER_MOVE (1 << 16)
+#define NUM_COLS 5
+#define NUM_LINES 5
+
+#define forlines(xx) for(int xx=0; xx < NUM_LINES; ++xx)
+#define forcols(xx) for(int xx=0; xx < NUM_COLS; ++xx)
+#define forall(xx,yy, kernel) forlines(xx){forcols(yy) {kernel}}
 
 static long long switches_timestamp;
-
-static int end_goal = 0;
 
 int mod(int a, int b)
 {
@@ -31,62 +37,133 @@ void resetEndNodes(int end_nodes[])
     memset(end_nodes, 0, sizeof(int) * NO_OF_3_WAY_LINES);
 }
 
+char itoc(const int number)
+{
+    return (char) ((number + 0x30) & 0xFF);
+}
+
 void default_init_switch(three_way_switches_array_t switches, const int line, const int col);
 void default_init_switces(three_way_switches_array_t switches, const int num_lines, const int num_cols);
 void init_red_switches(three_way_switches_array_t switches);
-void generateAndInitializeStartAndGoal(int start_nodes[], int end_nodes[], int *star_node_line_index, int* end_goal_index, const int current_level);
 
 void getPossibleSwitchPositions(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE], const int line, const int column, int possibleSwitchPositions[3]);
 int getNextSwitchPosition(int possible_controls[3], const int current_position);
-
+function_status_t pickMapOutOfAll(const int numMovements, map_t * map);
+function_status_t decompressMap(const uint64_t compressedMap, int8_t switches[5][5], int* startx, int* endx);
+void init_nodes(int start_nodes[], int end_nodes[], const int star_node_line_index);
 
 function_status_t switches_init(game_state_t* game_state)
 {
-    three_way_switch_t ** switches = game_state->map.switches;
-    int *start_nodes = game_state->map.start_nodes;
-    int *end_nodes = game_state->map.end_nodes;
+    map_t * map = &game_state->map;
     int current_level = game_state->current_level;
-    unsigned long path_tracing_attemtps = 0;
-    int path_found_counter = 0;
-    int random_number_of_paths_found = roll(0, 99);
-    int start_node_index;
-    int end_goal_index;
-    generateAndInitializeStartAndGoal(start_nodes, end_nodes, &start_node_index, &end_goal_index, current_level);
-    int min_number_of_steps_for_level = switches_get_level_max_movements(current_level);
-    
-    // Find a random path for the end goal
-    do
+    const int numMovementsPerLevel[] = 
     {
-        path_tracing_attemtps++;
-        // Initialize the switches
-        default_init_switces(switches, NO_OF_3_WAY_LINES, NO_OF_SWITCHES_PER_LINE);
-        init_red_switches(switches);
-        switches_distribute_power(&game_state->map);
-        break;
-        if (end_nodes[end_goal_index] == 1)
-        {
-            path_found_counter++;
-            path_tracing_attemtps = 0;
-        }
-        else if (path_tracing_attemtps >= MAX_RANDOM_ATTEMPTS) // if this is true, it means that the path tracing is stuck
-        {
-            LOG_ERROR("path tracing stuck");
-            return FAILURE; // return error
-        }
-    } while (path_found_counter < random_number_of_paths_found);
-
-    // Randomize the active switches
-    while (end_nodes[end_goal_index] == 1)
+        1, 1, 1, 1, 1,
+        2, 2, 2, 2, 2,
+        3, 3, 3, 3, 3,
+        4, 4, 4, 4, 4
+    };
+    // Pick a random path for the current level
+    default_init_switces(map->switches, NO_OF_3_WAY_LINES, NO_OF_SWITCHES_PER_LINE);
+    init_red_switches(map->switches);
+    if (does_fail(pickMapOutOfAll(numMovementsPerLevel[current_level], map)))
     {
-        if (does_fail(switches_randomize_possition(switches, end_nodes, end_goal_index)))
-        {
-            LOG_ERROR("switch randomizing stuck");
-            return FAILURE; // return error
-        }
-        switches_distribute_power(&game_state->map);
-    }
+        return FAILURE;
+    } 
+    switches_distribute_power(map);
 
     return SUCCESS;
+}
+
+function_status_t pickMapOutOfAll(const int numMovements, map_t * map)
+{
+    char fileNameBase[] = "/mnt/d/personaldir/puzzle_game/tools/moves1_final.in";
+    fileNameBase[sizeof(fileNameBase) - 11U] = itoc(numMovements);
+    FILE* fIN  = fopen(fileNameBase, "rb");
+    if (fIN == NULL)
+    {
+        LOG_ERROR("failed at fopen for file %s", fileNameBase);
+        return FAILURE;
+    }
+    const size_t mapIndex = (size_t) roll(0, NUMBER_OF_MAPS_PER_MOVE - 1);
+    LOG_INFO("mapIndex = %lu out of %d", mapIndex, NUMBER_OF_MAPS_PER_MOVE);
+    if (fseek(fIN, mapIndex * sizeof(uint64_t), SEEK_SET))
+    {
+        LOG_ERROR("failed at fseek for file %lu", mapIndex * sizeof(uint64_t));
+        fclose(fIN);
+        return FAILURE;
+    }
+    uint64_t compressedMap = 0;
+    int r = fread(&compressedMap, sizeof(uint64_t), 1, fIN);
+    LOG_INFO("fread = 0x%lx", compressedMap);
+    if (r != 1 || compressedMap == 0)
+    {
+        LOG_ERROR("failed at fread[mapIndexSize=%lu] %s", mapIndex * sizeof(uint64_t), fileNameBase);
+        fclose(fIN);
+        return FAILURE;
+    }
+    int startx = 0;
+    int endx = 0;
+    int8_t positions[NUM_LINES][NUM_COLS] = {0};
+    if(does_fail(decompressMap(compressedMap, positions, &startx, &endx)))
+    {
+        LOG_ERROR("failed at decompressMap");
+        fclose(fIN);
+        return FAILURE;
+    }
+    forall(i,j, {map->switches[i][j].position = positions[i][j];});
+
+    init_nodes(map->start_nodes, map->end_nodes, startx);
+    map->line_end_goal = (int)endx;
+
+    if (fclose(fIN))
+    {
+        fIN = NULL;
+        LOG_WARNING("Could not close file");
+    }
+    fIN = NULL;
+    return SUCCESS;
+}
+
+function_status_t decompressMap(const uint64_t compressedMap, int8_t switches[5][5], int* startx, int* endx) // here switches positions have different meaning
+{
+    int k = 0;
+    function_status_t status = SUCCESS;
+    forall(i,j,
+        uint8_t mm = (compressedMap >> k) & 0b11;
+        if (mm == 0)
+        {
+           switches[i][j] = mid_switch; //0 
+        }
+        else if (mm == 1)
+        {
+           switches[i][j] = low_switch; // -1
+        }
+        else if (mm == 2)
+        {
+           switches[i][j] = high_switch; // 1
+        }
+        else
+        {
+            LOG_ERROR("mm = %d\n", (int)mm);
+            status = FAILURE;
+        }
+        k += 2;
+    )
+    *startx = ((compressedMap >> k) & 0b111);
+    k += 3;
+    *endx = ((compressedMap >> k) & 0b111);
+    if (*startx > NUM_LINES)
+    {
+        LOG_ERROR("startx = %d", *startx);
+        status = FAILURE;
+    }
+    if (*endx > NUM_LINES)
+    {
+        LOG_ERROR("endx = %d", *endx);
+        status = FAILURE;
+    }
+    return status;
 }
 
 void init_nodes(int start_nodes[], int end_nodes[], const int star_node_line_index)
@@ -94,15 +171,6 @@ void init_nodes(int start_nodes[], int end_nodes[], const int star_node_line_ind
     memset(start_nodes, 0, sizeof(int) * NO_OF_3_WAY_LINES);
     memset(end_nodes, 0, sizeof(int) * NO_OF_3_WAY_LINES);
     start_nodes[star_node_line_index] = 1;
-}
-
-void generateAndInitializeStartAndGoal(int start_nodes[], int end_nodes[], int *star_node_line_index, int* end_goal_index, const int current_level)
-{
-    *star_node_line_index = roll(0, NO_OF_3_WAY_LINES - 1);
-    *end_goal_index = roll(0, NO_OF_3_WAY_LINES - 1);
-    end_goal = *end_goal_index;
-    // Reset all the nodes and switches
-    init_nodes(start_nodes, end_nodes, *star_node_line_index);
 }
 
 void default_init_switces(three_way_switches_array_t switches, const int num_lines, const int num_cols)
@@ -244,7 +312,6 @@ bool switches_verify_position(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_
 void switches_distribute_power(map_t *map)
 {
     three_way_switches_array_t * switches = &map->switches;
-    const int * start_nodes = map->start_nodes;
     int * end_nodes = map->end_nodes;
     // reset the end nodes
     resetEndNodes(end_nodes);
@@ -261,20 +328,23 @@ void switches_distribute_power(map_t *map)
     int lineIndex = -1;
     for (int i = 0; i < NO_OF_3_WAY_LINES; ++i)
     {
-       if (start_nodes[i] != 0)
+       if (map->start_nodes[i] != 0)
        {
            lineIndex = i;
            break;
        }
     }
 
-    if (lineIndex == -1) {
+    if (lineIndex == -1)
+    {
         LOG_ERROR("No active node in start_nodes found");
         return;
     }
     (*switches)[lineIndex][0].has_power = true;
+    bool has_power = true;
     for (int col = 0; col < NO_OF_SWITCHES_PER_LINE -1; col++)
     {
+        int prevLineIndex = lineIndex;
         switch ((*switches)[lineIndex][col].position)
         {
             case mid_switch:
@@ -292,12 +362,13 @@ void switches_distribute_power(map_t *map)
                 }
                 break;
             default:
-                LOG_WARNING("Invalid switch position");
+                LOG_WARNING("Invalid switch position %d",(int) (*switches)[lineIndex][col].position);
                 break;
         }
-        (*switches)[lineIndex][col+1].has_power = true;
+        has_power = (*switches)[prevLineIndex][col].has_power;
+        (*switches)[lineIndex][col+1].has_power = has_power;
     }
-    end_nodes[lineIndex] = 1; // TODO: potential bug, if the end node is not the last node in the line
+    end_nodes[lineIndex] = 1; // Power always reaches the final column
 }
 
 function_status_t switches_control(game_state_t* game_state, int *button_pushed_flag)
@@ -360,7 +431,6 @@ void getPossibleSwitchPositions(three_way_switch_t switches[NO_OF_3_WAY_LINES][N
     {
         possibleSwitchPositions[2] = 1;
     }
-
 }
 
 int getNextSwitchPosition(int possibleSwitchPositions[3], const int current_position)
@@ -417,9 +487,4 @@ int switches_get_level_max_movements(int current_level)
 {
     // compute minimum amount of memovements for level
     return MAX_GAME_MOVEMENTS - (((MAX_GAME_MOVEMENTS - MIN_GAME_MOVEMENTS) / NO_OF_LEVELS) * current_level);
-}
-
-int switches_get_end_goal()
-{
-    return end_goal;
 }

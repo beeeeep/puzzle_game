@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include "../misc.h"
 #include <string.h>
 
@@ -75,6 +76,7 @@ typedef struct map
   three_way_switches_array_t switches;
   int start_nodes[NO_OF_3_WAY_LINES];
   int end_nodes[NO_OF_3_WAY_LINES];
+  int line_end_goal;
 } map_t;
 
 typedef struct game_state_t
@@ -94,7 +96,6 @@ bool switches_verify_position(three_way_switches_array_t switches, int line, int
 function_status_t switches_time_calculate(long long current_time, unsigned int max_time_in_ms, unsigned char time_count_active_flag, int *result);
 void switches_time_reset(unsigned long current_time);
 int switches_time_get_level_time(int current_level);
-int switches_get_end_goal();
 
 
 #endif //SWITCHES_H

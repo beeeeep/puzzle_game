@@ -10,11 +10,12 @@ extern "C" {
 #include "log.h"
 #include "roll/roll.h"
 
+
 typedef struct userInterface
 {
   void (*initVisuals)();
   void (*initControls)();
-  void (*drawLevel)(const map_t* map);
+  void (*drawLevel)(map_t* map);
   void (*appendInfo)(const int end_goal, const int time_left, const int level_no);
   void (*get_controls_status)(rotary_enc_t *rotary);
   void (*terminate)();
