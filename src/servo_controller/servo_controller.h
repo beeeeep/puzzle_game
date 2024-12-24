@@ -42,7 +42,7 @@ void servo_ctrl_add_device(servo_motor_t servos[NO_OF_SERVOS], unsigned char dev
 
 void servo_ctrl_change_position(servo_motor_t *servo);
 
-void servo_ctrl_update(servo_motor_t servos[NO_OF_SERVOS]);
+unsigned char servo_ctrl_update(servo_motor_t servos[NO_OF_SERVOS]);
 
 #ifdef __cplusplus
 }

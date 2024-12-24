@@ -22,6 +22,7 @@ void nixie_controller_diplay_number(unsigned char number);
 //Displays 2 digit numbers for a short time, THIS IS A BLOCKING FUNCTION
 void nixie_controller_flash_number(unsigned char number);
 
+void nixie_controller_test(void);
 
 #ifdef __cplusplus
 }

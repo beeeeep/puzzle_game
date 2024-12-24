@@ -49,3 +49,14 @@ void nixie_controller_flash_number(unsigned char number)
     timestamp=milliseconds();
     while(milliseconds()-timestamp<NUMBER_FLASH_ON_TIME);//Wait for some time
 }
+
+void nixie_controller_test(void)
+{
+    static unsigned long timestamp;
+    for(int i=0; i<10; i++)
+    {
+        nixie_controller_diplay_number(i);  
+        timestamp=milliseconds();
+        while(milliseconds()-timestamp<1000);//Wait for some time
+    }
+}
