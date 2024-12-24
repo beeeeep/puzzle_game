@@ -22,7 +22,7 @@
 
 
 
-WINDOW *game_win;
+WINDOW *game_window;
 int startx = 0;
 int starty = 0;
 int switch_end_points_col[NO_OF_SWITCHES_PER_LINE];
@@ -49,22 +49,22 @@ void initTerminalScreen()
   startx = (80 - WIDTH) / 2;
   starty = (24 - HEIGHT) / 2;
 
-  game_win = newwin(HEIGHT, WIDTH, starty, startx);
+  game_window = newwin(HEIGHT, WIDTH, starty, startx);
   start_color();
   init_pair(1, COLOR_RED, COLOR_BLACK);
   init_pair(2, COLOR_YELLOW, COLOR_BLACK);
-  wbkgd(game_win, COLOR_PAIR(0));
-  nodelay(game_win, TRUE);
+  wbkgd(game_window, COLOR_PAIR(0));
+  nodelay(game_window, TRUE);
 }
 
 void initKeyboard()
 {
-  keypad(game_win, TRUE);
+  keypad(game_window, TRUE);
 }
 
 void translateKeyboardKeyToRotaryEncoder(rotary_enc_t *rotary)
 {
-  int key_pressed = wgetch(game_win);
+  int key_pressed = wgetch(game_window);
   static long long input_timestamp;
 
   if (millis_timestamp() - input_timestamp < 5)
@@ -95,7 +95,7 @@ void refreshWindowIfNeeded()
 {
   if (windowNeedsRefresh)
   {
-    wrefresh(game_win); /* Print it on to the real screen */
+    wrefresh(game_window); /* Print it on to the real screen */
     windowNeedsRefresh = false;
   }
   else
@@ -131,7 +131,44 @@ void set_switches_display_character(three_way_switches_array_t switches)
     }
 }
 
-void print(const map_t * map)
+
+void markActiveSegments(int Z[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE + 1], const three_way_switches_array_t switches, int8_t startx)
+{
+    Z[startx][0] = 1;
+    int newk;
+    int k = startx;
+    for(int c = 1; c < NO_OF_SWITCHES_PER_LINE + 1; ++c)
+    {
+       newk = k;
+       switch(switches[k][c-1].position)
+       {
+        case mid_switch:
+            {
+            Z[k][c] = Z[k][c-1];
+            newk = k;
+            break;
+            }
+        case low_switch:
+            if (k + 1 < 5) {
+                Z[k+1][c] = Z[k][c-1];
+                newk = k +1;
+            }
+            break;
+        case high_switch:
+            if (k -1 >= 0)
+            {
+                Z[k-1][c] = Z[k][c-1];
+                newk = k -1;
+            }
+            break;
+        default:
+           LOG_ERROR("No such switch");
+       }
+       k = newk;
+    }
+}
+
+void print(map_t * map)
 {
   set_switches_display_character(map->switches);
   const int * start_nodes = map->start_nodes;
@@ -146,53 +183,66 @@ void print(const map_t * map)
     (flash_flag == 0) ? (flash_flag = 1) : (flash_flag = 0);
   }
  
-  wmove(game_win, 1, 0);
+  wmove(game_window, 1, 0);
 
-  box(game_win, 0, 0);
-  wprintw(game_win, "\n");
+  box(game_window, 0, 0);
+  wprintw(game_window, "\n");
+  int activeSegments[5][6] = {0};
+  int start_line = -1;
+  for (int i = 0; i < NO_OF_3_WAY_LINES; ++i) { if (start_nodes[i] !=0) {start_line = i;} }
+  if (start_line < 0)
+  {
+    LOG_ERROR(" start_line = %d < 0", start_line);
+    return;
+  }
+  markActiveSegments(activeSegments, map->switches, start_line);
+  
   for (int line = 0; line < NO_OF_3_WAY_LINES; line++)
   {
     if (start_nodes[line] == 1)
     {
-      wprintw(game_win, " 0###");
+      wprintw(game_window, " 0###");
     }
     else
     {
-      wprintw(game_win, " O---");
+      wprintw(game_window, " O---");
     }
+
     for (int col = 0; col < NO_OF_SWITCHES_PER_LINE; col++)
     {
-      if (map->switches[line][col].has_power == 1)
+      wprintw(game_window, "%d", activeSegments[line][col]);
+      if (activeSegments[line][col] != 0)
       {
-        wprintw(game_win, "####");
+        
+        wprintw(game_window, "###");
       }
       else
       {
-        wprintw(game_win, "----");
+        wprintw(game_window, "---");
       }
 
       if (flash_flag && map->switches[line][col].selected == true)
       {
-        wprintw(game_win, "* *");
+        wprintw(game_window, "* *");
       }
       else
       {
         const int color_index = (map->switches[line][col].switch_color == red) ? 1 : 2;
-        wattron(game_win, COLOR_PAIR(color_index));
-        wprintw(game_win, "*%c*", map->switches[line][col].display);
-        wattroff(game_win, COLOR_PAIR(color_index));
+        wattron(game_window, COLOR_PAIR(color_index));
+        wprintw(game_window, "*%c*", map->switches[line][col].display);
+        wattroff(game_window, COLOR_PAIR(color_index));
       }
     }
 
-    if (end_nodes[line] == 1)
+    if (activeSegments[line][5] == 1)
     {
-      wprintw(game_win, "###0\n");
+      wprintw(game_window, "###0\n");
     }
     else
     {
-      wprintw(game_win, "---O\n");
+      wprintw(game_window, "---O\n");
     }
-    wprintw(game_win, "\n");
+    wprintw(game_window, "\n");
   }
 
   for (int line = 0; line < NO_OF_3_WAY_LINES; line++)
@@ -204,14 +254,14 @@ void print(const map_t * map)
       {
         if (flash_flag && map->switches[line][col].selected == true)
         {
-          mvwprintw(game_win, switch_end_points_line[line] - 1, switch_end_points_col[col], " ");
+          mvwprintw(game_window, switch_end_points_line[line] - 1, switch_end_points_col[col], " ");
         }
         else
         {
           const int color_index = (map->switches[line][col].switch_color == red) ? 1 : 2;
-          wattron(game_win, COLOR_PAIR(color_index));
-          mvwprintw(game_win, switch_end_points_line[line] - 1, switch_end_points_col[col], "/");
-          wattroff(game_win, COLOR_PAIR(color_index));
+          wattron(game_window, COLOR_PAIR(color_index));
+          mvwprintw(game_window, switch_end_points_line[line] - 1, switch_end_points_col[col], "/");
+          wattroff(game_window, COLOR_PAIR(color_index));
         }
       }
 
@@ -219,14 +269,14 @@ void print(const map_t * map)
       {
         if (flash_flag && map->switches[line][col].selected == true)
         {
-          mvwprintw(game_win, switch_end_points_line[line] + 1, switch_end_points_col[col], " ");
+          mvwprintw(game_window, switch_end_points_line[line] + 1, switch_end_points_col[col], " ");
         }
         else
         {
           const int color_index = (map->switches[line][col].switch_color == red) ? 1 : 2;
-          wattron(game_win, COLOR_PAIR(color_index));
-          mvwprintw(game_win, switch_end_points_line[line] + 1, switch_end_points_col[col], "\\");
-          wattroff(game_win, COLOR_PAIR(color_index));
+          wattron(game_window, COLOR_PAIR(color_index));
+          mvwprintw(game_window, switch_end_points_line[line] + 1, switch_end_points_col[col], "\\");
+          wattroff(game_window, COLOR_PAIR(color_index));
         }
       }
     }
@@ -236,7 +286,7 @@ void print(const map_t * map)
 
 void appendInfo(const int end_goal, const int time_left, const int level_no)
 {
-  mvwprintw(game_win, 11, 3, "GOAL: %u LVL:%02u TIME:%01u", end_goal + 1, level_no + 1, time_left);
+  mvwprintw(game_window, 11, 3, "GOAL: %u LVL:%02u TIME:%01u", end_goal + 1, level_no + 1, time_left);
   refreshWindowIfNeeded();
 }
 
