@@ -3,3 +3,4 @@ puzzle
 *.exe
 *.dll
 build/
+tools/validateMapFiles

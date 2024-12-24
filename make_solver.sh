@@ -1,1 +1,0 @@
-g++ -Wall -lstdc++ solver.cpp
