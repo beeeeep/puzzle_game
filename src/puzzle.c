@@ -1,6 +1,7 @@
 #include "puzzle.h"
 #include "gui/gui.h"
 #include <stdlib.h>
+#include "switches/game_state.h"
 
 userInterface_t* gui;
 
@@ -10,31 +11,12 @@ bool has_player_won_level(const int end_nodes[], const int end_goal)
    return end_nodes[end_goal] == 1;
 }
 
-void reset_control(control_index_t* control)
-{
-   control->line = 0;
-   control->column = 0;
-}
-
-void init_game_state(game_state_t* game_state)
-{
-   memset(game_state->map.switches, 0, sizeof(game_state->map.switches));
-   memset(game_state->map.end_nodes, 0, sizeof(game_state->map.end_nodes));
-   memset(game_state->map.start_nodes, 0, sizeof(game_state->map.start_nodes));
-   game_state->rotary.direction = 0;
-   game_state->rotary.button = 0;
-   game_state->current_level = 0;
-   reset_control(&game_state->control);
-}
-
 game_state_t game_state;
 
 int main(int argc, char **argv)
 {
    init_game_state(&game_state);
-   int movements_left = 4;
    int time_left = 0;
-   int end_goal;
    int button_pushed_flag = 0;
    roll_init();
 
@@ -46,7 +28,6 @@ int main(int argc, char **argv)
    init_gui_structures(&gui);
    (*gui->initVisuals)();
    (*gui->initControls)();
-   int timesInLevel = 0;
    LOOP_FOREVER_MAX_GUARD(loops_failed, 10)
    {
       (*gui->get_controls_status)(&game_state.rotary);
@@ -70,7 +51,6 @@ int main(int argc, char **argv)
          {
             game_state.current_level++;
             sleep(5);
-
          }
          else
          {
@@ -87,7 +67,6 @@ int main(int argc, char **argv)
          exit_on_fail(switches_init(&game_state));
          reset_control(&game_state.control);
          switches_time_reset(millis_timestamp());
-
       }
    }
    (*gui->terminate)();
