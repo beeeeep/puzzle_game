@@ -5,7 +5,7 @@
 #define CMAKE_BUILD 1
 #endif
 
-#include "../puzzle.h"
+#include "../abstract_game/puzzle.h"
 
 #ifdef CMAKE_BUILD
 

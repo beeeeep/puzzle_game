@@ -21,6 +21,8 @@ typedef struct userInterface
   void (*terminate)();
 } userInterface_t;
 
+int puzzleGame(void (*init_ui_structures)(userInterface_t**), void (*delete_ui_structures)(userInterface_t**));
+
 #ifdef __cplusplus
 }
 #endif

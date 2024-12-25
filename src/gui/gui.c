@@ -172,7 +172,6 @@ void print(map_t * map)
 {
   set_switches_display_character(map->switches);
   const int * start_nodes = map->start_nodes;
-  const int * end_nodes = map->end_nodes;
 
   static long flash_on_timestamp;
   static int flash_flag;
