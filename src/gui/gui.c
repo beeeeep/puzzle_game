@@ -1,7 +1,5 @@
 #include "gui.h"
 
-#ifdef CMAKE_BUILD
-
 #include "switches.h"
 #include "misc.h"
 
@@ -312,6 +310,3 @@ void delete_gui_structures(userInterface_t** gui)
   free(*gui);
   *gui = NULL;
 }
-
-
-#endif

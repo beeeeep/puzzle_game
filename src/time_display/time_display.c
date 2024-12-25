@@ -23,6 +23,4 @@ void time_display_set_time(unsigned int current_time, unsigned int max_time)
         time_display_set_pwm_duty_cycle(device_ID_val,channel_val,current_time_pwm_value);
     }
     current_time_pwm_value_prev=current_time_pwm_value;
-
-
 }
