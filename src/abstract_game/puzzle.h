@@ -5,10 +5,10 @@
 extern "C" {
 #endif
 
-#include "switches/switches.h"
-#include "misc.h"
-#include "log.h"
-#include "roll/roll.h"
+#include "src/switches/switches.h"
+#include "src/misc.h"
+#include "src/log.h"
+#include "src/roll/roll.h"
 
 
 typedef struct userInterface

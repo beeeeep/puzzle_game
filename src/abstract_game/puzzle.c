@@ -1,6 +1,6 @@
 #include "puzzle.h"
 #include <stdlib.h>
-#include "switches/game_state.h"
+#include "src/switches/game_state.h"
 
 userInterface_t* ui;
 
