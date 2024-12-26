@@ -1,5 +1,5 @@
 # Include directories
-include_directories(switches roll interfaces servo_controller gui .)
+include_directories(switches roll interfaces servo_controller gui . ..)
 
 
 # Source files

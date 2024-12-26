@@ -2,7 +2,7 @@
 
 #ifdef CMAKE_BUILD
 
-#include "switches.h"
+#include "switches/switches.h"
 #include "misc.h"
 
 #include <stdio.h>
@@ -314,4 +314,4 @@ void delete_gui_structures(userInterface_t** gui)
 }
 
 
-#endif
+#endif // CMAKE_BUILD

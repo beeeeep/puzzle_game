@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include "../misc.h"
+#include "src/misc.h"
 #include <string.h>
 #include "game_state.h"
 

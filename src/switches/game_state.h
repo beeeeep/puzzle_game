@@ -29,7 +29,8 @@ typedef enum
 {
    high_switch = 0,
    mid_switch,
-   low_switch
+   low_switch,
+   undefined
 } switch_pos_t;
 
 typedef enum switch_color_t

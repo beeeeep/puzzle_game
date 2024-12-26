@@ -44,6 +44,8 @@ void servo_ctrl_change_position(servo_motor_t *servo);
 
 unsigned char servo_ctrl_update(servo_motor_t servos[NO_OF_SERVOS]);
 
+void servo_ctrl_test(servo_motor_t servos[NO_OF_SERVOS]);
+
 #ifdef __cplusplus
 }
 #endif
