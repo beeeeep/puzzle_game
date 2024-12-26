@@ -8,6 +8,7 @@
 #include "src/servo_controller/servo_controller.h"
 #include "src/switches/switches.h"
 #include "src/time_display/time_display.h"
+#include "src/sound/sound_module2.h"
 #include <stdlib.h>
 
 #define ROTARY_A_PIN      10
@@ -33,10 +34,17 @@
 #define LED_LAMP_OE   48
 #define LED_LAMP_SER  15
 
+
+#define SOUND_MODULE_PIN_S1  0
+#define SOUND_MODULE_PIN_S2  1
+#define SOUND_MODULE_PIN_S3  2
+#define SOUND_MODULE_PIN_S6  3
+
 PCA9685 pca9685;
 servo_motor_t servos[NO_OF_SERVOS];
 leds_ctrl_str_t leds;
 rotary_t rotary;
+GPD2846 sound_module(SOUND_MODULE_PIN_S1, SOUND_MODULE_PIN_S2, SOUND_MODULE_PIN_S3, SOUND_MODULE_PIN_S6, 20);
 
 bool change_position_flag = false;
 control_index_t control_position;
@@ -213,6 +221,7 @@ void initVisuals() {
     initializeLEDs(&leds);
     nixie_controller_init(nixie_set_number, nixie_power_off, millis);
     time_display_init(setDeviceChannelServoPulseDuration_wrapper, 0x40, 0);
+    
 }
 
 void initRotaryEncoder() {
@@ -321,6 +330,7 @@ void appendInfo(const int end_goal, const int time_left, const int current_level
     unsigned int max_time = switches_time_get_level_time(current_level);
     time_display_set_time((unsigned int) time_left, max_time);
     nixie_controller_diplay_number(end_goal);
+    sound_module.goToTrack(current_level / 5);
 }
 
 void get_controls_status(rotary_enc_t* rotary) {
@@ -331,6 +341,7 @@ void get_controls_status(rotary_enc_t* rotary) {
     if (rotary->button) {
         change_position_flag = true;
     }
+    // if no button played for a long time stop playing sound ???
 }
 
 void shutDownDevice() {
