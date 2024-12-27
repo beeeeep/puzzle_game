@@ -4,3 +4,4 @@ puzzle
 *.dll
 build/
 tools/validateMapFiles
+src/ota/credentials.h
