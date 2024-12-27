@@ -33,7 +33,7 @@ GPD2846::GPD2846(int pinS1, int pinS2, int pinS3, int pinS6, int numberOfTracks)
     _currentTrack = 0;
 }
 
-void goToTrack(int track) {
+void GPD2846::goToTrack(int track) {
     if (track < 0 || track >= _numberOfTracks) {
         return;
     }
