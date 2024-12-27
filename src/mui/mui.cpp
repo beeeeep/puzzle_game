@@ -348,7 +348,7 @@ void shutDownDevice() {
     // YOLO (literaly): No shutdown procedure
 }
 
-void init_gui_structures(userInterface_t** gui) {
+void init_mui_structures(userInterface_t** gui) {
     pca9685.setDeviceChannelServoPulseDuration(0x40, 0, 16000);
     led_controller_test(&leds);
     nixie_controller_test();
@@ -362,7 +362,7 @@ void init_gui_structures(userInterface_t** gui) {
     (*gui)->terminate           = shutDownDevice;
 }
 
-void delete_gui_structures(userInterface_t** gui) {
+void delete_mui_structures(userInterface_t** gui) {
     free(*gui);
     *gui = NULL;
 }
