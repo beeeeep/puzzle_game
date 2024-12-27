@@ -10,9 +10,16 @@
 #include <map>
 #include <random>
 
+
+
+#define BIG_FAT_VALUE   9
 #define NUM_COLS  5
 #define NUM_LINES 5
+#define NUM_FINAL_MAPS 1 << 11
+// #define OUTPUT_MAPS
 
+#define __min(a, b)     (((a) < (b)) ? (a) : (b))
+#define ___min(a, b, c) __min((a), (__min(b, c)))
 #define forlines(xx) for (int xx = 0; xx < NUM_LINES; ++xx)
 #define forcols(xx)  for (int xx = 0; xx < NUM_COLS; ++xx)
 #define forall(xx, yy, kernel) \
@@ -89,9 +96,7 @@ void buildZ(int8_t Z[5][6], int8_t S[5][5], int8_t startx) {
     }
 }
 
-#define __min(a, b)     (((a) < (b)) ? (a) : (b))
-#define ___min(a, b, c) __min((a), (__min(b, c)))
-#define BIG_FAT_VALUE   9
+
 void buildD(int8_t D[5][6], int8_t S[5][5], int8_t endx) {
     forlines(l) {
         D[l][5] = BIG_FAT_VALUE;
@@ -247,14 +252,19 @@ void pickMaps(const std::string& fileName, const int numSolutionsPerMove[]) {
         std::ifstream(fileName + "4.in", std::ios::binary),
     };
     std::ofstream movesOut[] = {
-        std::ofstream(fileName + "1_final.in", std::ios::binary),
-        std::ofstream(fileName + "2_final.in", std::ios::binary),
-        std::ofstream(fileName + "3_final.in", std::ios::binary),
-        std::ofstream(fileName + "4_final.in", std::ios::binary),
+        std::ofstream(fileName + "1_final.in"),
+        std::ofstream(fileName + "2_final.in"),
+        std::ofstream(fileName + "3_final.in"),
+        std::ofstream(fileName + "4_final.in"),
     };
-
+    {
+        movesOut[0] << "uint64_t moves1[]={";
+        movesOut[1] << "uint64_t moves2[]={";
+        movesOut[2] << "uint64_t moves3[]={";
+        movesOut[3] << "uint64_t moves4[]={";
+    }
     const int finalNumberOfMaps        = *std::min_element(numSolutionsPerMove, numSolutionsPerMove + 5);
-    const int numberOfMapsPerMovements = std::min(1 << 16, finalNumberOfMaps);
+    const int numberOfMapsPerMovements = std::min(NUM_FINAL_MAPS, finalNumberOfMaps);
     int* nums                          = new int[numberOfMapsPerMovements];
     std::random_device rd;
     std::mt19937 mte(rd());
@@ -273,24 +283,40 @@ void pickMaps(const std::string& fileName, const int numSolutionsPerMove[]) {
             break;
         }
         // std::cout << std::bitset<64>(*compressedMap) << "\n";
-        movesOut[0].write(buffer[0], sizeof(uint64_t));
+        movesOut[0] << *reinterpret_cast<uint64_t*>(buffer[0]) << ",";
         movesIn[1].seekg(n);
         movesIn[1].read(buffer[1], sizeof(uint64_t));
-        movesOut[1].write(buffer[1], sizeof(uint64_t));
+        movesOut[1] << *reinterpret_cast<uint64_t*>(buffer[1]) << ",";
         movesIn[2].seekg(n);
         movesIn[2].read(buffer[2], sizeof(uint64_t));
-        movesOut[2].write(buffer[2], sizeof(uint64_t));
+        movesOut[2] << *reinterpret_cast<uint64_t*>(buffer[2]) << ",";
         movesIn[3].seekg(n);
         movesIn[3].read(buffer[3], sizeof(uint64_t));
-        movesOut[3].write(buffer[3], sizeof(uint64_t));
+        movesOut[3] << *reinterpret_cast<uint64_t*>(buffer[3]) << ",";
+    }
+        {
+        movesOut[0] << "0};";
+        movesOut[1] << "0};";
+        movesOut[2] << "0};";
+        movesOut[3] << "0};";
     }
     delete nums;
 }
 
 
 int main() {
-    int numSolutionsPerMove[5] = {0};
-    outputMaps("moves", numSolutionsPerMove);
+    #ifdef OUTPUT_MAPS
+        int numSolutionsPerMove[5] = {0};
+        outputMaps("moves", numSolutionsPerMove);
+    #else
+        int numSolutionsPerMove[] = {
+            5242880,
+            12400321,
+            6507130,
+            1814312,
+            249757
+        };
+    #endif
     std::cout << "Done making maps" << std::endl;
     pickMaps("moves", numSolutionsPerMove);
     std::cout << "Done picking maps" << std::endl;
