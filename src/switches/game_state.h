@@ -80,6 +80,7 @@ typedef struct game_state_t
   control_index_t control;
   rotary_enc_t rotary;
   int current_level;
+  int time_left;
 } game_state_t;
 
 void init_game_state(game_state_t* game_state);

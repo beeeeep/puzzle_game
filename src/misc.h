@@ -21,7 +21,7 @@ typedef enum
 #define sentinel_check_block(expr, sentinel) if (does_fail(expr))\
       {\
         increase_sentinel(sentinel);\
-        continue;\
+        return FAILURE;\
       }\
       else\
       {\
@@ -32,6 +32,12 @@ typedef enum
       {\
         LOG_ERROR( "failure when running " #code );\
         return 1;\
+      }
+      
+#define return_on_fail(code) if (does_fail(code))\
+      {\
+        LOG_ERROR( "failure when running " #code );\
+        return FAILURE;\
       }
 
 long long millis_timestamp();
