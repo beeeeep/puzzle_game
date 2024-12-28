@@ -140,6 +140,30 @@ void led_lamp_set_state(unsigned char channel, unsigned char state) {
     digitalWrite(LED_LAMP_SCLK, 1);
 }
 
+// Normal functions
+void test_peripherals();
+void init_servos();
+void initializeLEDs(leds_ctrl_str_t* leds);
+void initializePca9685();
+servo_pos_t switches_pos_to_servo_pos(switch_pos_t pos);
+void markActiveSegments(int Z[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE + 1], const three_way_switches_array_t switches, int8_t startx);
+
+
+void initVisuals() {
+    static bool needInitialization = true;
+    if (needInitialization)
+    {
+        initializePca9685(); // This needs to be here because the pca9685 is used in the initialization of everything else
+        init_servos();
+        initializeLEDs(&leds);
+        nixie_controller_init(nixie_set_number, nixie_power_off, millis);
+        time_display_init(setDeviceChannelServoPulseDuration_wrapper, 0x40, 0);
+        needInitialization = false;
+        LOG_INFO("Visuals initialized");
+    }
+}
+
+
 void init_servos() {
     // Init Servos, these are not placed in a for loop so its easier to calibrate then idividually
     /*0-4*/
@@ -173,7 +197,9 @@ void init_servos() {
     servo_ctrl_add_device(servos, 22, 0x41, 6, 2000, 1500, 800);
     servo_ctrl_add_device(servos, 23, 0x41, 7, 2000, 1500, 800);
     servo_ctrl_add_device(servos, 24, 0x41, 8, 2000, 1500, 800);
+    LOG_INFO("All servos devices are added");
     servo_ctrl_update(servos);
+    LOG_INFO("Servos initialized");
 }
 
 void initializeLEDs(leds_ctrl_str_t* leds) {
@@ -215,13 +241,40 @@ void initializeLEDs(leds_ctrl_str_t* leds) {
     led_controller_add_led_switch_device(&leds->ledbar_switch[4][4], 0x43, 8);
 }
 
+void initializePca9685() {
+    int device_frequency;
+    Wire.setPins(SDA_PIN, SCL_PIN);
+    Wire.begin();
+    pca9685.setWire(Wire);
+    pca9685.addDevice(0x40);
+    pca9685.addDevice(0x41);
+    pca9685.addDevice(0x42);
+    pca9685.addDevice(0x43);
+    // pca9685.setupOutputEnablePin(constants::output_enable_pin); //ΤΟΔΟ
+    pca9685.setSingleDeviceToFrequency(0x40, 50);
+    pca9685.setSingleDeviceToFrequency(0x41, 50);
+    pca9685.setSingleDeviceToFrequency(0x42, 50);
+    pca9685.setSingleDeviceToFrequency(0x43, 50);
 
-void initVisuals() {
-    init_servos();
-    initializeLEDs(&leds);
-    nixie_controller_init(nixie_set_number, nixie_power_off, millis);
-    time_display_init(setDeviceChannelServoPulseDuration_wrapper, 0x40, 0);
-    
+    // Verify device connection
+    device_frequency = pca9685.getSingleDeviceFrequency(0x40);
+    Serial.print("Freq A: ");
+    Serial.println(device_frequency);
+    delay(100);
+    device_frequency = pca9685.getSingleDeviceFrequency(0x41);
+    Serial.print("Freq B: ");
+    Serial.println(device_frequency);
+    delay(100);
+    device_frequency = pca9685.getSingleDeviceFrequency(0x42);
+    Serial.print("Freq C: ");
+    Serial.println(device_frequency);
+    delay(100);
+    device_frequency = pca9685.getSingleDeviceFrequency(0x43);
+    Serial.print("Freq D: ");
+    Serial.println(device_frequency);
+    delay(100);
+    pca9685.setDeviceChannelServoPulseDuration(0x40, 0, 16000);
+    LOG_INFO("pca9685 set");
 }
 
 void initRotaryEncoder() {
@@ -232,52 +285,6 @@ void initRotaryEncoder() {
     attachInterrupt(ROTARY_B_PIN, Rotary_AB_pin_callback_fuction, FALLING);
     attachInterrupt(ROTARY_BUTTON_PIN, Rotary_button_pin_callback_fuction, FALLING);
     Rotary_init(rotary_read_pin_A, rotary_read_pin_B, rotary_read_button, millis_wrapper);
-}
-
-servo_pos_t switches_pos_to_servo_pos(switch_pos_t pos) {
-    switch (pos) {
-    case high_switch:
-        return servo_pos_high;
-    case mid_switch:
-        return servo_pos_center;
-    case low_switch:
-        return servo_pos_low;
-    default:
-        return servo_pos_undefined;
-    }
-}
-
-void markActiveSegments(
-    int Z[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE + 1], const three_way_switches_array_t switches, int8_t startx) {
-    Z[startx][0] = 1;
-    int newk;
-    int k = startx;
-    for (int c = 1; c < NO_OF_SWITCHES_PER_LINE + 1; ++c) {
-        newk = k;
-        switch (switches[k][c - 1].position) {
-        case mid_switch:
-            {
-                Z[k][c] = Z[k][c - 1];
-                newk    = k;
-                break;
-            }
-        case low_switch:
-            if (k + 1 < 5) {
-                Z[k + 1][c] = Z[k][c - 1];
-                newk        = k + 1;
-            }
-            break;
-        case high_switch:
-            if (k - 1 >= 0) {
-                Z[k - 1][c] = Z[k][c - 1];
-                newk        = k - 1;
-            }
-            break;
-        default:
-            LOG_ERROR("No such switch");
-        }
-        k = newk;
-    }
 }
 
 void drawLevel(map_t* map) {
@@ -326,6 +333,52 @@ void drawLevel(map_t* map) {
     servo_ctrl_update(servos);
 }
 
+void markActiveSegments(
+    int Z[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE + 1], const three_way_switches_array_t switches, int8_t startx) {
+    Z[startx][0] = 1;
+    int newk;
+    int k = startx;
+    for (int c = 1; c < NO_OF_SWITCHES_PER_LINE + 1; ++c) {
+        newk = k;
+        switch (switches[k][c - 1].position) {
+        case mid_switch:
+            {
+                Z[k][c] = Z[k][c - 1];
+                newk    = k;
+                break;
+            }
+        case low_switch:
+            if (k + 1 < 5) {
+                Z[k + 1][c] = Z[k][c - 1];
+                newk        = k + 1;
+            }
+            break;
+        case high_switch:
+            if (k - 1 >= 0) {
+                Z[k - 1][c] = Z[k][c - 1];
+                newk        = k - 1;
+            }
+            break;
+        default:
+            LOG_ERROR("No such switch");
+        }
+        k = newk;
+    }
+}
+
+servo_pos_t switches_pos_to_servo_pos(switch_pos_t pos) {
+    switch (pos) {
+    case high_switch:
+        return servo_pos_high;
+    case mid_switch:
+        return servo_pos_center;
+    case low_switch:
+        return servo_pos_low;
+    default:
+        return servo_pos_undefined;
+    }
+}
+
 void appendInfo(const int end_goal, const int time_left, const int current_level) {
     unsigned int max_time = switches_time_get_level_time(current_level);
     time_display_set_time((unsigned int) time_left, max_time);
@@ -349,10 +402,6 @@ void shutDownDevice() {
 }
 
 void init_mui_structures(userInterface_t** gui) {
-    pca9685.setDeviceChannelServoPulseDuration(0x40, 0, 16000);
-    led_controller_test(&leds);
-    nixie_controller_test();
-    servo_ctrl_test(servos);
     *gui                        = (userInterface_t*) malloc(sizeof(userInterface_t));
     (*gui)->initVisuals         = initVisuals;
     (*gui)->initControls        = initRotaryEncoder;
@@ -360,6 +409,13 @@ void init_mui_structures(userInterface_t** gui) {
     (*gui)->appendInfo          = appendInfo;
     (*gui)->get_controls_status = get_controls_status;
     (*gui)->terminate           = shutDownDevice;
+    initVisuals();
+}   
+
+void test_peripherals() {
+    led_controller_test(&leds);
+    nixie_controller_test();
+    servo_ctrl_test(servos);
 }
 
 void delete_mui_structures(userInterface_t** gui) {

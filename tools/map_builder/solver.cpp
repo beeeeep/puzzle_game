@@ -294,7 +294,7 @@ void pickMaps(const std::string& fileName, const int numSolutionsPerMove[]) {
         movesIn[3].read(buffer[3], sizeof(uint64_t));
         movesOut[3] << *reinterpret_cast<uint64_t*>(buffer[3]) << ",";
     }
-        {
+    {
         movesOut[0] << "0};";
         movesOut[1] << "0};";
         movesOut[2] << "0};";

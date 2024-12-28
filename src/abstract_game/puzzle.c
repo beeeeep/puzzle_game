@@ -30,10 +30,11 @@ function_status_t puzzleGameInit(game_state_t* game_state, void (*init_ui_struct
    {
       return FAILURE;
    }
-
+   LOG_INFO("Abstract game initialized");
+   
    init_ui_structures(&ui);
-   (*ui->initVisuals)();
-   (*ui->initControls)();
+   // (*ui->initVisuals)();
+   // (*ui->initControls)();
    return SUCCESS;
 }
 

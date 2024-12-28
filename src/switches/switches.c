@@ -184,7 +184,7 @@ function_status_t pickMapOutOfAllUsingArray(const int numMovements, map_t * map)
 
     init_nodes(map->start_nodes, map->end_nodes, startx);
     map->line_end_goal = (int)endx;
-
+    LOG_INFO("Succesfully picked map");
     return SUCCESS;
 }
 
@@ -432,6 +432,7 @@ void switches_distribute_power(map_t *map)
         (*switches)[lineIndex][col+1].has_power = has_power;
     }
     end_nodes[lineIndex] = 1; // Power always reaches the final column
+    LOG_INFO("Finished distributing power");
 }
 
 function_status_t switches_control(game_state_t* game_state, int *button_pushed_flag)
