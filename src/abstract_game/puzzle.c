@@ -2,8 +2,9 @@
 #include <stdlib.h>
 #include "src/switches/game_state.h"
 
-userInterface_t* ui;
-int button_pushed_flag;
+static userInterface_t* ui;
+static int button_pushed_flag;
+
 bool has_player_won_level(const int end_nodes[], const int end_goal);
 
 

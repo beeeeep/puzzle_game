@@ -8,18 +8,22 @@
 #include "src/servo_controller/servo_controller.h"
 #include "src/switches/switches.h"
 #include "src/time_display/time_display.h"
-#include "src/sound/sound_module2.h"
+// #include "src/sound/sound_module2.h"
 #include <stdlib.h>
 
-#define ROTARY_A_PIN      10
-#define ROTARY_B_PIN      11
-#define ROTARY_BUTTON_PIN 12
-#define SCL_PIN           4
-#define SDA_PIN           5
+#define ROTARY_A_PIN      42
+#define ROTARY_B_PIN      2
+#define ROTARY_BUTTON_PIN 1
+
+#define SCL_PIN           40
+#define SDA_PIN           41
+
 #define PCA9685_OUTPUT_ENABLE_PIN
-#define NIXIE_LATCH_PIN 8
-#define NIXIE_CLOCK_PIN 3
-#define NIXIE_SER_PIN   18
+
+#define NIXIE_CLOCK_PIN 12
+#define NIXIE_SER_PIN   10
+#define NIXIE_LATCH_PIN 9
+#define NIXIE_OUTPUT_ENABLE 11
 
 #define LED_BAR_STATIC_SER_RCLK 16
 #define LED_BAR_STATIC_SER_SCLK 17
@@ -29,8 +33,8 @@
 #define LED_BAR_STATIC_SER_2    18
 #define LED_BAR_STATIC_SER_3    15
 
-#define LED_LAMP_SCLK 47
-#define LED_LAMP_RCLK 21
+#define LED_LAMP_SCLK 21
+#define LED_LAMP_LATCH 47
 #define LED_LAMP_OE   48
 #define LED_LAMP_SER  15
 
@@ -40,18 +44,32 @@
 #define SOUND_MODULE_PIN_S3  2
 #define SOUND_MODULE_PIN_S6  3
 
-PCA9685 pca9685;
-servo_motor_t servos[NO_OF_SERVOS];
-leds_ctrl_str_t leds;
-rotary_t rotary;
-GPD2846 sound_module(SOUND_MODULE_PIN_S1, SOUND_MODULE_PIN_S2, SOUND_MODULE_PIN_S3, SOUND_MODULE_PIN_S6, 20);
+static PCA9685 pca9685;
+static servo_motor_t servos[NO_OF_SERVOS];
+static leds_ctrl_str_t leds;
+static rotary_t rotary;
+// static GPD2846 sound_module(SOUND_MODULE_PIN_S1, SOUND_MODULE_PIN_S2, SOUND_MODULE_PIN_S3, SOUND_MODULE_PIN_S6, 20);
 
-bool change_position_flag = false;
-control_index_t control_position;
+static bool change_position_flag = false;
+static control_index_t control_position;
 
-int nixie_data[16]             = {64, 32, 16, 8, 4, 2, 1, 32768, 16384, 8192};
-const int led_lamp_offsets[16] = {64, 32, 16, 8, 4, 2, 1, 32768, 16384, 8192};
-const int ledbar_offsets[4][8] = {{
+static int nixie_data[16]             = {
+/*0*/4, 
+/*1*/2,
+/*2*/1,
+/*3*/32768,
+/*4*/16384,  
+/*5*/8192,
+/*6*/64,
+/*7*/32,
+/*8*/16,
+/*9*/8};
+
+
+
+
+static const int led_lamp_offsets[16] = {64, 32, 16, 8, 4, 2, 1, 32768, 16384, 8192};
+static const int ledbar_offsets[4][8] = {{
                                       64,
                                       32,
                                       16,
@@ -64,14 +82,28 @@ const int ledbar_offsets[4][8] = {{
     {64, 32, 16, 8, 4, 2, 1, 32768}, {64, 32, 16, 8, 4, 2, 1, 32768}, {64, 32, 16, 8, 4, 2, 1, 32768}};
 
 // WRAPPER FUNCTIONS
+void nixie_init_pins(void) {
+    pinMode(NIXIE_CLOCK_PIN, OUTPUT);
+    pinMode(NIXIE_SER_PIN, OUTPUT);
+    pinMode(NIXIE_LATCH_PIN, OUTPUT);
+    pinMode(NIXIE_OUTPUT_ENABLE, OUTPUT);
+    digitalWrite(NIXIE_OUTPUT_ENABLE, LOW);
+}
+
 void nixie_set_number(unsigned char number) {
+    digitalWrite(NIXIE_OUTPUT_ENABLE, LOW);
+    digitalWrite(NIXIE_LATCH_PIN, LOW);
     shiftOut(NIXIE_SER_PIN, NIXIE_CLOCK_PIN, MSBFIRST, 0xFF & (nixie_data[number] >> 8));
     shiftOut(NIXIE_SER_PIN, NIXIE_CLOCK_PIN, MSBFIRST, 0xFF & nixie_data[number]);
+    digitalWrite(NIXIE_LATCH_PIN, HIGH);
 }
 
 void nixie_power_off(void) {
+    digitalWrite(NIXIE_OUTPUT_ENABLE, HIGH);
+    digitalWrite(NIXIE_LATCH_PIN, LOW);
     shiftOut(NIXIE_SER_PIN, NIXIE_CLOCK_PIN, MSBFIRST, 0xFF);
     shiftOut(NIXIE_SER_PIN, NIXIE_CLOCK_PIN, MSBFIRST, 0xFF);
+    digitalWrite(NIXIE_LATCH_PIN, HIGH);
 }
 
 void setDeviceChannelServoPulseDuration_wrapper(
@@ -134,10 +166,10 @@ void led_lamp_set_state(unsigned char channel, unsigned char state) {
         led_lamp_data_reg &= ~(1 << led_lamp_offsets[channel]); // set to low
     }
 
-    digitalWrite(LED_LAMP_RCLK, 0);
+    digitalWrite(LED_LAMP_LATCH, LOW);
     shiftOut(LED_LAMP_SER, LED_LAMP_SCLK, MSBFIRST, 0xFF & (led_lamp_data_reg >> 8));
     shiftOut(LED_LAMP_SER, LED_LAMP_SCLK, MSBFIRST, 0xFF & led_lamp_data_reg);
-    digitalWrite(LED_LAMP_SCLK, 1);
+    digitalWrite(LED_LAMP_LATCH, HIGH);
 }
 
 // Normal functions
@@ -155,9 +187,9 @@ void initVisuals() {
     {
         initializePca9685(); // This needs to be here because the pca9685 is used in the initialization of everything else
         init_servos();
+        time_display_init(setDeviceChannelServoPulseDuration_wrapper, 0x40, 11);
         initializeLEDs(&leds);
-        nixie_controller_init(nixie_set_number, nixie_power_off, millis);
-        time_display_init(setDeviceChannelServoPulseDuration_wrapper, 0x40, 0);
+        nixie_controller_init(nixie_init_pins, nixie_set_number, nixie_power_off, millis);
         needInitialization = false;
         LOG_INFO("Visuals initialized");
     }
@@ -168,44 +200,67 @@ void init_servos() {
     // Init Servos, these are not placed in a for loop so its easier to calibrate then idividually
     /*0-4*/
     servo_ctrl_init(millis_wrapper, setDeviceChannelServoPulseDuration_wrapper);
-    servo_ctrl_add_device(servos, 0, 0x40, 0, 2000, 1500, 800);
-    servo_ctrl_add_device(servos, 1, 0x40, 1, 2000, 1500, 800);
-    servo_ctrl_add_device(servos, 2, 0x40, 2, 2000, 1500, 800);
-    servo_ctrl_add_device(servos, 3, 0x40, 3, 2000, 1500, 800);
-    servo_ctrl_add_device(servos, 4, 0x40, 4, 2000, 1500, 800);
+    servo_ctrl_add_device(servos, 0, 0x42, 4, 1900, 1500, 1000); // checked 
+    servo_ctrl_add_device(servos, 5, 0x42, 0, 1900, 1500, 1000); // checked
+    servo_ctrl_add_device(servos, 10, 0x42, 2, 1900, 1500, 1000); // checked
+    servo_ctrl_add_device(servos, 15, 0x42, 4, 2100, 1600, 1100); // checked
+    servo_ctrl_add_device(servos, 20, 0x42, 3, 1900, 1500, 1000); // checked
     /*5-9*/
-    servo_ctrl_add_device(servos, 5, 0x40, 5, 2000, 1500, 800);
-    servo_ctrl_add_device(servos, 6, 0x40, 6, 2000, 1500, 800);
-    servo_ctrl_add_device(servos, 7, 0x40, 7, 2000, 1500, 800);
-    servo_ctrl_add_device(servos, 8, 0x40, 8, 2000, 1500, 800);
-    servo_ctrl_add_device(servos, 9, 0x40, 9, 2000, 1500, 800);
+    servo_ctrl_add_device(servos, 1, 0x42, 6, 2000, 1500, 1000);
+    servo_ctrl_add_device(servos, 6, 0x42, 8, 2000, 1500, 1000);
+    servo_ctrl_add_device(servos, 11, 0x42, 9, 2000, 1500, 1000);
+    servo_ctrl_add_device(servos, 16, 0x42, 5, 2000, 1500, 1000);  // checked
+    servo_ctrl_add_device(servos, 21, 0x42, 7, 1300, 700, 500);
     /*10-14*/
-    servo_ctrl_add_device(servos, 10, 0x40, 10, 2000, 1500, 800);
-    servo_ctrl_add_device(servos, 11, 0x40, 11, 2000, 1500, 800);
-    servo_ctrl_add_device(servos, 12, 0x40, 12, 2000, 1500, 800);
-    servo_ctrl_add_device(servos, 13, 0x40, 13, 2000, 1500, 800);
-    servo_ctrl_add_device(servos, 14, 0x40, 14, 2000, 1500, 800);
+    servo_ctrl_add_device(servos, 2, 0x42, 10, 1900, 1500, 1000);
+    servo_ctrl_add_device(servos, 7, 0x42, 12, 2100, 1700, 1200);
+    servo_ctrl_add_device(servos, 12, 0x42, 14, 1900, 1500, 1000);
+    servo_ctrl_add_device(servos, 17, 0x42, 11, 2200, 1800, 800);
+    servo_ctrl_add_device(servos, 22, 0x42, 13, 2400, 2100, 1200);
+
     /*15-19*/
-    servo_ctrl_add_device(servos, 15, 0x40, 15, 2000, 1500, 800);
-    servo_ctrl_add_device(servos, 16, 0x41, 0, 2000, 1500, 800);
-    servo_ctrl_add_device(servos, 17, 0x41, 1, 2000, 1500, 800);
-    servo_ctrl_add_device(servos, 18, 0x41, 2, 2000, 1500, 800);
-    servo_ctrl_add_device(servos, 19, 0x41, 3, 2000, 1500, 800);
+    servo_ctrl_add_device(servos, 3, 0x40, 1, 2000, 1500, 1000);
+    servo_ctrl_add_device(servos, 8, 0x40,  4, 2000, 1500, 1000);
+    servo_ctrl_add_device(servos, 13, 0x40, 2, 2000, 1500, 1000);
+    servo_ctrl_add_device(servos, 18, 0x40, 0, 2000, 1500, 1000);
+    servo_ctrl_add_device(servos, 23, 0x40, 3, 2300, 1900, 1400);
     /*20-24*/
-    servo_ctrl_add_device(servos, 20, 0x41, 4, 2000, 1500, 800);
-    servo_ctrl_add_device(servos, 21, 0x41, 5, 2000, 1500, 800);
-    servo_ctrl_add_device(servos, 22, 0x41, 6, 2000, 1500, 800);
-    servo_ctrl_add_device(servos, 23, 0x41, 7, 2000, 1500, 800);
-    servo_ctrl_add_device(servos, 24, 0x41, 8, 2000, 1500, 800);
+    servo_ctrl_add_device(servos, 4, 0x40, 5, 1950, 1450, 950);
+    servo_ctrl_add_device(servos, 9, 0x40, 8, 1900, 1400, 900);
+    servo_ctrl_add_device(servos, 14, 0x40, 7, 2150, 1650, 1150);
+    servo_ctrl_add_device(servos, 19, 0x40, 6, 2050, 1550, 1050);
+    servo_ctrl_add_device(servos, 24, 0x40, 9, 2150, 1650, 1150);
+
+
+
+
+    for(int i = 0; i < NO_OF_SERVOS; i++) {
+        servos[i].position = servo_pos_center;
+    }
     LOG_INFO("All servos devices are added");
-    servo_ctrl_update(servos);
+    int counter=0;
+    do
+    {
+       counter=servo_ctrl_update(servos); 
+       Serial.println(counter);
+    }while (counter>0) ;
+
+
     LOG_INFO("Servos initialized");
 }
 
 void initializeLEDs(leds_ctrl_str_t* leds) {
+    
+    pinMode(LED_LAMP_SCLK, OUTPUT);
+    pinMode(LED_LAMP_LATCH, OUTPUT);
+    pinMode(LED_LAMP_OE, OUTPUT);
+    pinMode(LED_LAMP_SER, OUTPUT);
+    pinMode(LED_BAR_STATIC_SER_OE, OUTPUT);
+    digitalWrite(LED_LAMP_OE, LOW);
+    digitalWrite(LED_BAR_STATIC_SER_OE, LOW);
+
+
     led_controller_init(millis_wrapper, led_bar_set_pwm_duty_cycle, led_bar_static_set_state, led_lamp_set_state, leds);
-    digitalWrite(LED_LAMP_OE, 0);
-    digitalWrite(LED_BAR_STATIC_SER_OE, 0);
 
     // Initialize the led bards that are on the switches, not placed in a for loop so they can be calibrated
     // idividually
@@ -252,7 +307,7 @@ void initializePca9685() {
     pca9685.addDevice(0x43);
     // pca9685.setupOutputEnablePin(constants::output_enable_pin); //ΤΟΔΟ
     pca9685.setSingleDeviceToFrequency(0x40, 50);
-    pca9685.setSingleDeviceToFrequency(0x41, 50);
+    pca9685.setSingleDeviceToFrequency(0x41,50);
     pca9685.setSingleDeviceToFrequency(0x42, 50);
     pca9685.setSingleDeviceToFrequency(0x43, 50);
 
@@ -273,7 +328,6 @@ void initializePca9685() {
     Serial.print("Freq D: ");
     Serial.println(device_frequency);
     delay(100);
-    pca9685.setDeviceChannelServoPulseDuration(0x40, 0, 16000);
     LOG_INFO("pca9685 set");
 }
 
@@ -383,7 +437,7 @@ void appendInfo(const int end_goal, const int time_left, const int current_level
     unsigned int max_time = switches_time_get_level_time(current_level);
     time_display_set_time((unsigned int) time_left, max_time);
     nixie_controller_diplay_number(end_goal);
-    sound_module.goToTrack(current_level / 5);
+    // sound_module.goToTrack(current_level / 5);
 }
 
 void get_controls_status(rotary_enc_t* rotary) {
@@ -401,6 +455,115 @@ void shutDownDevice() {
     // YOLO (literaly): No shutdown procedure
 }
 
+
+void temp_test()
+{
+    nixie_controller_init(nixie_init_pins, nixie_set_number, nixie_power_off, millis);
+  // nixie_controller_test();
+
+    pinMode(LED_LAMP_SCLK, OUTPUT);
+    pinMode(LED_LAMP_LATCH, OUTPUT);
+    pinMode(LED_LAMP_OE, OUTPUT);
+    pinMode(LED_LAMP_SER, OUTPUT);
+    pinMode(LED_BAR_STATIC_SER_OE, OUTPUT);
+   
+//     led_controller_init(millis_wrapper, led_bar_set_pwm_duty_cycle, led_bar_static_set_state, led_lamp_set_state, &leds);
+//     digitalWrite(LED_LAMP_OE, LOW);
+//     digitalWrite(LED_BAR_STATIC_SER_OE, LOW);
+
+//     for (unsigned char col = 0; col < NO_OF_LED_LAMPS_COL; col++) {
+//         for (unsigned char row = 0; row < NO_OF_LED_LAMPS_PER_COL; row++) {
+//                    leds.led_lamp[col][row].state = lamp_state_off;
+//         }
+//     }
+//     leds.led_lamp[0][0].state = lamp_state_on;
+//     leds.led_lamp[0][0].state = lamp_state_on;
+//  Serial.println("new");
+//   //  while ((1))
+//  //   {
+//         /* code */
+//         led_lamp_set_state(0,1);
+//         led_lamp_set_state(1,1);
+//         led_lamp_set_state(2,1);
+//         led_lamp_set_state(3,1);
+//         //led_controller_update(&leds);
+//         Serial.println("test");
+//      //    led_controller_test(&leds);  
+//  //   }
+    initializePca9685();
+    init_servos();
+
+   
+    // setDeviceChannelServoPulseDuration_wrapper(0x42,0,1200);
+    //  delay(500);
+    // setDeviceChannelServoPulseDuration_wrapper(0x42,1,1200);
+    //  delay(500);
+    // setDeviceChannelServoPulseDuration_wrapper(0x42,2,1200);
+    //  delay(500);
+    // setDeviceChannelServoPulseDuration_wrapper(0x42,3,1200); //problem
+    // delay(500);
+    // setDeviceChannelServoPulseDuration_wrapper(0x42,4,1200);
+    // delay(500);
+// //
+// //
+// //
+    // setDeviceChannelServoPulseDuration_wrapper(0x42,6,1200);
+    // delay(500);
+    // setDeviceChannelServoPulseDuration_wrapper(0x42, 8,1200);
+    // delay(500);
+    // setDeviceChannelServoPulseDuration_wrapper(0x42, 9,1200);
+    // delay(500);
+    // setDeviceChannelServoPulseDuration_wrapper(0x42,5,1200); //3
+    // delay(500);
+    // setDeviceChannelServoPulseDuration_wrapper(0x42,7,500);
+    // delay(500);
+//
+    //setDeviceChannelServoPulseDuration_wrapper(0x42,10,1900);
+    //delay(500);
+    //setDeviceChannelServoPulseDuration_wrapper(0x42,12,2000);
+    //delay(500);
+    //   setDeviceChannelServoPulseDuration_wrapper(0x42,14,1900);
+    //delay(500);
+    //setDeviceChannelServoPulseDuration_wrapper(0x42,11,2200);
+    //delay(500);
+    //setDeviceChannelServoPulseDuration_wrapper(0x42,13,2400);
+   // setDeviceChannelServoPulseDuration_wrapper(0x42,13,2100); // center
+    // setDeviceChannelServoPulseDuration_wrapper(0x42,13,1200); // low
+   // delay(500);
+
+
+ //  setDeviceChannelServoPulseDuration_wrapper(0x40,1,1500);
+ //  delay(500); 
+ //  setDeviceChannelServoPulseDuration_wrapper(0x40,4,1500);  
+ //  delay(500); 
+ //setDeviceChannelServoPulseDuration_wrapper(0x40,2,1500); //disco
+ //  delay(500);
+ //setDeviceChannelServoPulseDuration_wrapper(0x40,0,1500); //disco
+ //  delay(500);
+ //  setDeviceChannelServoPulseDuration_wrapper(0x40,3,1900); // 1900 center // 2300 high
+ //  delay(500);
+
+ setDeviceChannelServoPulseDuration_wrapper(0x40,5,1450); //1
+ delay(500); 
+  setDeviceChannelServoPulseDuration_wrapper(0x40,8,1400); //2
+ delay(500); 
+ setDeviceChannelServoPulseDuration_wrapper(0x40,7,1650);  //3
+ delay(500);
+ setDeviceChannelServoPulseDuration_wrapper(0x40,6,1550);  //4
+ delay(500);
+ setDeviceChannelServoPulseDuration_wrapper(0x40,9,1550);  //5
+ delay(500);
+
+
+//   time_display_init(setDeviceChannelServoPulseDuration_wrapper, 0x40, 11);
+    for (int i = 0; i <  100; ++i)
+    {
+ //       time_display_set_time(i, 100);
+        delay(50);
+    }
+//   servo_ctrl_test(servos);
+}
+
 void init_mui_structures(userInterface_t** gui) {
     *gui                        = (userInterface_t*) malloc(sizeof(userInterface_t));
     (*gui)->initVisuals         = initVisuals;
@@ -409,8 +572,11 @@ void init_mui_structures(userInterface_t** gui) {
     (*gui)->appendInfo          = appendInfo;
     (*gui)->get_controls_status = get_controls_status;
     (*gui)->terminate           = shutDownDevice;
-    initVisuals();
+    // initVisuals();
+    temp_test();
 }   
+
+
 
 void test_peripherals() {
     led_controller_test(&leds);
