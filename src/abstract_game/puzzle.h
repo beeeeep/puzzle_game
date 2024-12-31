@@ -22,6 +22,10 @@ typedef struct userInterface
 } userInterface_t;
 
 int puzzleGame(void (*init_ui_structures)(userInterface_t**), void (*delete_ui_structures)(userInterface_t**));
+function_status_t puzzleGameInit(game_state_t* game_state, void (*init_ui_structures)(userInterface_t**));
+function_status_t puzzleGameMainIteration(game_state_t* game_state);
+function_status_t puzzleGameTermination(void (*delete_ui_structures)(userInterface_t**));
+
 
 #ifdef __cplusplus
 }

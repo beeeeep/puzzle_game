@@ -45,11 +45,12 @@ void servo_ctrl_change_position(servo_motor_t* servo) {
 }
 
 unsigned char servo_ctrl_update(servo_motor_t servos[NO_OF_SERVOS]) {
-    static unsigned long timestamp;
+    static unsigned long timestamp=0;
     static unsigned char servo_queue[NO_OF_SERVOS];
-    static unsigned char tail_index;
-    static unsigned char head_index;
-    int servos_active_flag=0;
+    static unsigned char tail_index=0;
+    static unsigned char head_index=0;
+    static char no_of_elements=0;
+    unsigned char servos_active_flag = 0;
 
     // check for new directives
     for (int i = 0; i < NO_OF_SERVOS; i++) {
@@ -58,40 +59,46 @@ unsigned char servo_ctrl_update(servo_motor_t servos[NO_OF_SERVOS]) {
             servos[i].ready         = 0;
             servo_queue[head_index] = i;
             head_index              = (head_index < (NO_OF_SERVOS - 1)) ? head_index + 1 : 0;
+            no_of_elements++;
         }
         servos[i].position_prev = servos[i].position;
     }
 
     // Check if any motor needs to change angle
-    if (head_index != tail_index) {
-        if (millis_func() - timestamp
-            > SERVO_UPDATE_RATE_MS) // execute queued movement when the time passes, so not every servo moves at once
+    if (head_index != tail_index || no_of_elements>0) {
+
+
+        if (millis_func() - timestamp > SERVO_UPDATE_RATE_MS) // execute queued movement when the time passes, so not every servo moves at once
         {
             servo_ctrl_change_position(&servos[servo_queue[tail_index]]);
             servos[servo_queue[tail_index]].ready = 1;
 
             tail_index = (tail_index < (NO_OF_SERVOS - 1)) ? tail_index + 1 : 0;
             timestamp  = millis_func();
+            no_of_elements--;
         }
-        servos_active_flag=0;
+       servos_active_flag=(no_of_elements>0);
+      
     }
-    return servos_active_flag;
+    return servo_queue[tail_index];
 }
 
-void servo_ctrl_test(servo_motor_t servos[NO_OF_SERVOS])
-{
+void servo_ctrl_test(servo_motor_t servos[NO_OF_SERVOS]) {
     for (int i = 0; i < NO_OF_SERVOS; i++) {
-     servos->position=servo_pos_low;
+        servos->position = servo_pos_low;
     }
-    while(servo_ctrl_update(servos));
-        for (int i = 0; i < NO_OF_SERVOS; i++) {
-     servos->position=servo_pos_high;
+    while (servo_ctrl_update(servos))
+        ;
+    for (int i = 0; i < NO_OF_SERVOS; i++) {
+        servos->position = servo_pos_high;
     }
-    while(servo_ctrl_update(servos));
-        for (int i = 0; i < NO_OF_SERVOS; i++) {
-     servos->position=servo_pos_center;
+    while (servo_ctrl_update(servos))
+        ;
+    for (int i = 0; i < NO_OF_SERVOS; i++) {
+        servos->position = servo_pos_center;
     }
-     while(servo_ctrl_update(servos));
+    while (servo_ctrl_update(servos))
+        ;
 }
 
 

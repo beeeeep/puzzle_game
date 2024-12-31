@@ -11,6 +11,7 @@ void init_game_state(game_state_t* game_state)
    game_state->rotary.button = 0;
    game_state->current_level = 0;
    reset_control(&game_state->control);
+   game_state->time_left = 0;
 }
 
 void reset_control(control_index_t* control)

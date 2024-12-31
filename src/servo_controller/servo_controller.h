@@ -8,14 +8,14 @@ extern "C" {
 #include <stdio.h>
 
 #define NO_OF_SERVOS 25
-#define SERVO_UPDATE_RATE_MS 500
+#define SERVO_UPDATE_RATE_MS 1000
 
 typedef enum
 {
+    servo_pos_undefined,
     servo_pos_high,
     servo_pos_center,
-    servo_pos_low,
-    servo_pos_undefined
+    servo_pos_low
 } servo_pos_t;
 
 

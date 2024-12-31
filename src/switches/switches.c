@@ -10,8 +10,18 @@
 #include "../log.h"
 #endif
 
+
+#ifdef READ_DIRECTLY_FROM_FILE
+
+#else
+  #include "data/moves1_final.in"
+  #include "data/moves2_final.in"
+  #include "data/moves3_final.in"
+  #include "data/moves4_final.in"
+#endif
+
 // for NUMBER_OF_MAPS_PER_MOVE look the file:  tools/numMovements.txt
-#define NUMBER_OF_MAPS_PER_MOVE (1 << 16)
+#define NUMBER_OF_MAPS_PER_MOVE (1 << 11)
 #define NUM_COLS 5
 #define NUM_LINES 5
 
@@ -49,6 +59,8 @@ void init_red_switches(three_way_switches_array_t switches);
 void getPossibleSwitchPositions(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE], const int line, const int column, int possibleSwitchPositions[3]);
 int getNextSwitchPosition(int possible_controls[3], const int current_position);
 function_status_t pickMapOutOfAll(const int numMovements, map_t * map);
+function_status_t pickMapOutOfAllUsingFile(const int numMovements, map_t * map);
+function_status_t pickMapOutOfAllUsingArray(const int numMovements, map_t * map);
 function_status_t decompressMap(const uint64_t compressedMap, int8_t switches[5][5], int* startx, int* endx);
 void init_nodes(int start_nodes[], int end_nodes[], const int star_node_line_index);
 
@@ -77,7 +89,16 @@ function_status_t switches_init(game_state_t* game_state)
 
 function_status_t pickMapOutOfAll(const int numMovements, map_t * map)
 {
-    char fileNameBase[] = "/mnt/d/personaldir/puzzle_game/tools/moves1_final.in";
+    #ifdef READ_DIRECTLY_FROM_FILE
+        return pickMapOutOfAllUsingFile(numMovements, map);
+    #else
+        return pickMapOutOfAllUsingArray(numMovements, map);
+    #endif
+}
+
+function_status_t pickMapOutOfAllUsingFile(const int numMovements, map_t * map)
+{
+    char fileNameBase[] = "../tools/moves1_final.in";
     fileNameBase[sizeof(fileNameBase) - 11U] = itoc(numMovements);
     FILE* fIN  = fopen(fileNameBase, "rb");
     if (fIN == NULL)
@@ -122,6 +143,48 @@ function_status_t pickMapOutOfAll(const int numMovements, map_t * map)
         LOG_WARNING("Could not close file");
     }
     fIN = NULL;
+    return SUCCESS;
+}
+
+function_status_t pickMapOutOfAllUsingArray(const int numMovements, map_t * map)
+{
+    uint64_t compressedMap = 0;
+    const size_t mapIndex = (size_t) roll(0, NUMBER_OF_MAPS_PER_MOVE - 1);
+    LOG_INFO("mapIndex = %lu out of %d", mapIndex, NUMBER_OF_MAPS_PER_MOVE);
+    if (numMovements == 1)
+    {
+        compressedMap = moves1[mapIndex];
+    }
+    else if (numMovements == 2)
+    {
+        compressedMap = moves2[mapIndex];
+    }
+    else if (numMovements == 3)
+    {
+        compressedMap = moves3[mapIndex];
+    }
+    else if (numMovements == 4)
+    {
+        compressedMap = moves4[mapIndex];
+    }
+    else
+    {
+        LOG_ERROR("at pickMapOutOfAllUsingArray: numMovements = %d", numMovements);
+        return FAILURE;
+    }
+    int startx = 0;
+    int endx = 0;
+    int8_t positions[NUM_LINES][NUM_COLS] = {0};
+    if(does_fail(decompressMap(compressedMap, positions, &startx, &endx)))
+    {
+        LOG_ERROR("failed at decompressMap");
+        return FAILURE;
+    }
+    forall(i,j, {map->switches[i][j].position = positions[i][j];});
+
+    init_nodes(map->start_nodes, map->end_nodes, startx);
+    map->line_end_goal = (int)endx;
+    LOG_INFO("Succesfully picked map");
     return SUCCESS;
 }
 
@@ -369,6 +432,7 @@ void switches_distribute_power(map_t *map)
         (*switches)[lineIndex][col+1].has_power = has_power;
     }
     end_nodes[lineIndex] = 1; // Power always reaches the final column
+    LOG_INFO("Finished distributing power");
 }
 
 function_status_t switches_control(game_state_t* game_state, int *button_pushed_flag)
