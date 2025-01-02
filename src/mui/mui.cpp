@@ -8,6 +8,7 @@
 #include "src/servo_controller/servo_controller.h"
 #include "src/switches/switches.h"
 #include "src/time_display/time_display.h"
+#include "src/interfaces/servo_switches.h"
 // #include "src/sound/sound_module2.h"
 #include <stdlib.h>
 
@@ -368,9 +369,10 @@ void drawLevel(map_t* map) {
                 if (change_position_flag) {
                     servo_pos_t prev_servo_position = servos[lineIndex * 5 + columnIndex].position;
                     servos[lineIndex * 5 + columnIndex].position =
-                        switches_pos_to_servo_pos(map->switches[lineIndex][columnIndex].position);
+                        switch_pos_to_servo_pos(map->switches[lineIndex][columnIndex].position);
                     change_position_flag = false;
                 }
+                // at rotary encoder position make it blinking
                 leds.ledbar_switch[columnIndex][lineIndex].state_prev =
                     (map->switches[lineIndex][columnIndex].has_power) ? lamp_state_on : lamp_state_off;
                 leds.ledbar_switch[columnIndex][lineIndex].state = lamp_state_blink;
@@ -380,11 +382,11 @@ void drawLevel(map_t* map) {
             }
         }
         leds.led_lamp[0][lineIndex].state = (map->start_nodes[lineIndex] != 0) ? lamp_state_on : lamp_state_off;
-        leds.led_lamp[1][lineIndex].state = (activeSegments[lineIndex][5] != 0) ? lamp_state_on : lamp_state_off;
+        leds.led_lamp[1][lineIndex].state = (lineIndex == map->line_end_goal) ? lamp_state_on : lamp_state_off;
     }
-    // at rotary encoder position make it blinking
+
     led_controller_update(&leds);
-    servo_ctrl_update(servos);
+    while(servo_ctrl_update(servos)){};
 }
 
 void markActiveSegments(
@@ -420,18 +422,6 @@ void markActiveSegments(
     }
 }
 
-servo_pos_t switches_pos_to_servo_pos(switch_pos_t pos) {
-    switch (pos) {
-    case high_switch:
-        return servo_pos_high;
-    case mid_switch:
-        return servo_pos_center;
-    case low_switch:
-        return servo_pos_low;
-    default:
-        return servo_pos_undefined;
-    }
-}
 
 void appendInfo(const int end_goal, const int time_left, const int current_level) {
     unsigned int max_time = switches_time_get_level_time(current_level);
