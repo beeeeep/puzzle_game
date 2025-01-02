@@ -426,7 +426,8 @@ void markActiveSegments(
 void appendInfo(const int end_goal, const int time_left, const int current_level) {
     unsigned int max_time = switches_time_get_level_time(current_level);
     time_display_set_time((unsigned int) time_left, max_time);
-    nixie_controller_diplay_number(end_goal);
+    const uint8_t numberOfMovements = (uint8_t)(current_level / 5 + 1); 
+    nixie_controller_diplay_number(numberOfMovements);
     // sound_module.goToTrack(current_level / 5);
 }
 
