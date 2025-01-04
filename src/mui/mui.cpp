@@ -1,8 +1,7 @@
 #include "mui.h"
 
-#include "src/misc.h"
-
 #include "src/led_controller/led_controller.h"
+#include "src/misc.h"
 #include "src/nixie_controller/nixie_controller.h"
 #include "src/rotary/rotary.h"
 #include "src/servo_controller/servo_controller.h"
@@ -16,14 +15,14 @@
 #define ROTARY_B_PIN      2
 #define ROTARY_BUTTON_PIN 1
 
-#define SCL_PIN           40
-#define SDA_PIN           41
+#define SCL_PIN 40
+#define SDA_PIN 41
 
 #define PCA9685_OUTPUT_ENABLE_PIN
 
-#define NIXIE_CLOCK_PIN 12
-#define NIXIE_SER_PIN   10
-#define NIXIE_LATCH_PIN 9
+#define NIXIE_CLOCK_PIN     12
+#define NIXIE_SER_PIN       10
+#define NIXIE_LATCH_PIN     9
 #define NIXIE_OUTPUT_ENABLE 11
 
 #define LED_BAR_STATIC_SER_RCLK 16
@@ -34,16 +33,16 @@
 #define LED_BAR_STATIC_SER_2    18
 #define LED_BAR_STATIC_SER_3    15
 
-#define LED_LAMP_SCLK 21
+#define LED_LAMP_SCLK  21
 #define LED_LAMP_LATCH 47
-#define LED_LAMP_OE   48
-#define LED_LAMP_SER  15
+#define LED_LAMP_OE    48
+#define LED_LAMP_SER   45
 
 
-#define SOUND_MODULE_PIN_S1  0
-#define SOUND_MODULE_PIN_S2  1
-#define SOUND_MODULE_PIN_S3  2
-#define SOUND_MODULE_PIN_S6  3
+#define SOUND_MODULE_PIN_S1 0
+#define SOUND_MODULE_PIN_S2 1
+#define SOUND_MODULE_PIN_S3 2
+#define SOUND_MODULE_PIN_S6 3
 
 static PCA9685 pca9685;
 static servo_motor_t servos[NO_OF_SERVOS];
@@ -54,33 +53,64 @@ static rotary_t rotary;
 static bool change_position_flag = false;
 static control_index_t control_position;
 
-static int nixie_data[16]             = {
-/*0*/4, 
-/*1*/2,
-/*2*/1,
-/*3*/32768,
-/*4*/16384,  
-/*5*/8192,
-/*6*/64,
-/*7*/32,
-/*8*/16,
-/*9*/8};
+
+static int nixie_data[16] = {
+    /*0*/ 4,
+    /*1*/ 2,
+    /*2*/ 1,
+    /*3*/ 32768,
+    /*4*/ 16384,
+    /*5*/ 8192,
+    /*6*/ 64,
+    /*7*/ 32,
+    /*8*/ 16,
+    /*9*/ 8};
+
+static int test_a_read, test_b_read, test_button_read, test_a_value, test_b_value;
 
 
+static const int led_lamp_offsets[15] = {7, 6, 5, 4, 3, 2, 1, 0, 8, 15, 14, 13, 12, 11, 10};
 
-
-static const int led_lamp_offsets[16] = {64, 32, 16, 8, 4, 2, 1, 32768, 16384, 8192};
 static const int ledbar_offsets[4][8] = {{
-                                      64,
-                                      32,
-                                      16,
-                                      8,
-                                      4,
-                                      2,
-                                      1,
-                                      32768,
-                                  },
-    {64, 32, 16, 8, 4, 2, 1, 32768}, {64, 32, 16, 8, 4, 2, 1, 32768}, {64, 32, 16, 8, 4, 2, 1, 32768}};
+                                             7,
+                                             6,
+                                             5,
+                                             4,
+                                             3,
+                                             2,
+                                             1,
+                                             0,
+                                         },
+    {
+        7,
+        6,
+        5,
+        4,
+        3,
+        2,
+        1,
+        0,
+    },
+    {
+        7,
+        6,
+        5,
+        4,
+        3,
+        2,
+        1,
+        0,
+    },
+    {
+        7,
+        6,
+        5,
+        4,
+        3,
+        2,
+        1,
+        0,
+    }};
 
 // WRAPPER FUNCTIONS
 void nixie_init_pins(void) {
@@ -117,16 +147,33 @@ unsigned long millis_wrapper(void) {
 }
 
 unsigned char rotary_read_pin_A(void) {
+    test_a_read  = 1;
+    test_a_value = digitalRead(ROTARY_A_PIN);
     return (unsigned char) digitalRead(ROTARY_A_PIN);
 }
 
 unsigned char rotary_read_pin_B(void) {
+    test_b_read  = 1;
+    test_b_value = digitalRead(ROTARY_B_PIN);
     return (unsigned char) digitalRead(ROTARY_B_PIN);
 }
 
 unsigned char rotary_read_button(void) {
+    test_button_read = 1;
+
     return (unsigned char) digitalRead(ROTARY_BUTTON_PIN);
 }
+
+void initRotaryEncoder() {
+    pinMode(ROTARY_A_PIN, INPUT_PULLUP);
+    pinMode(ROTARY_B_PIN, INPUT_PULLUP);
+    pinMode(ROTARY_BUTTON_PIN, INPUT_PULLUP);
+    attachInterrupt(ROTARY_A_PIN, Rotary_AB_pin_callback_fuction, CHANGE);
+    attachInterrupt(ROTARY_B_PIN, Rotary_AB_pin_callback_fuction, CHANGE);
+    attachInterrupt(ROTARY_BUTTON_PIN, Rotary_button_pin_callback_fuction, CHANGE);
+    Rotary_init(rotary_read_pin_A, rotary_read_pin_B, rotary_read_button, millis_wrapper);
+}
+
 
 void led_bar_set_pwm_duty_cycle(unsigned char device_ID, unsigned char channel, unsigned int power) {
     pca9685.setDeviceChannelDutyCycle(device_ID, channel, power);
@@ -154,8 +201,13 @@ void led_bar_static_set_state(unsigned char device_no, unsigned char channel, un
     } else {
         led_bar_data_reg[device_no] &= ~(1 << ledbar_offsets[device_no][channel]); // set to low
     }
-    shiftOut(ser_pin, LED_LAMP_SCLK, MSBFIRST, 0xFF & (led_bar_data_reg[device_no] >> 8));
-    shiftOut(ser_pin, LED_LAMP_SCLK, MSBFIRST, 0xFF & led_bar_data_reg[device_no]);
+
+
+    digitalWrite(LED_BAR_STATIC_SER_OE, LOW);
+    digitalWrite(LED_BAR_STATIC_SER_RCLK, LOW);
+    shiftOut(ser_pin, LED_BAR_STATIC_SER_SCLK, MSBFIRST, 0xFF & (led_bar_data_reg[device_no] >> 8));
+    shiftOut(ser_pin, LED_BAR_STATIC_SER_SCLK, MSBFIRST, 0xFF & led_bar_data_reg[device_no]);
+    digitalWrite(LED_BAR_STATIC_SER_RCLK, HIGH);
 }
 
 void led_lamp_set_state(unsigned char channel, unsigned char state) {
@@ -166,7 +218,7 @@ void led_lamp_set_state(unsigned char channel, unsigned char state) {
     } else {
         led_lamp_data_reg &= ~(1 << led_lamp_offsets[channel]); // set to low
     }
-
+    digitalWrite(LED_LAMP_OE, LOW);
     digitalWrite(LED_LAMP_LATCH, LOW);
     shiftOut(LED_LAMP_SER, LED_LAMP_SCLK, MSBFIRST, 0xFF & (led_lamp_data_reg >> 8));
     shiftOut(LED_LAMP_SER, LED_LAMP_SCLK, MSBFIRST, 0xFF & led_lamp_data_reg);
@@ -179,14 +231,15 @@ void init_servos();
 void initializeLEDs(leds_ctrl_str_t* leds);
 void initializePca9685();
 servo_pos_t switches_pos_to_servo_pos(switch_pos_t pos);
-void markActiveSegments(int Z[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE + 1], const three_way_switches_array_t switches, int8_t startx);
+void markActiveSegments(
+    int Z[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE + 1], const three_way_switches_array_t switches, int8_t startx);
 
 
 void initVisuals() {
     static bool needInitialization = true;
-    if (needInitialization)
-    {
-        initializePca9685(); // This needs to be here because the pca9685 is used in the initialization of everything else
+    if (needInitialization) {
+        initializePca9685(); // This needs to be here because the pca9685 is used in the initialization of everything
+                             // else
         init_servos();
         time_display_init(setDeviceChannelServoPulseDuration_wrapper, 0x40, 11);
         initializeLEDs(&leds);
@@ -201,100 +254,198 @@ void init_servos() {
     // Init Servos, these are not placed in a for loop so its easier to calibrate then idividually
     /*0-4*/
     servo_ctrl_init(millis_wrapper, setDeviceChannelServoPulseDuration_wrapper);
-    servo_ctrl_add_device(servos, 0, 0x42, 4, 1900, 1500, 1000); // checked 
+    servo_ctrl_add_device(servos, 0, 0x42, 3, 1900, 1400, 1000); // checked
     servo_ctrl_add_device(servos, 5, 0x42, 0, 1900, 1500, 1000); // checked
-    servo_ctrl_add_device(servos, 10, 0x42, 2, 1900, 1500, 1000); // checked
-    servo_ctrl_add_device(servos, 15, 0x42, 4, 2100, 1600, 1100); // checked
-    servo_ctrl_add_device(servos, 20, 0x42, 3, 1900, 1500, 1000); // checked
+    servo_ctrl_add_device(servos, 10, 0x42, 2, 1900, 1450, 1000); // checked
+    servo_ctrl_add_device(servos, 15, 0x42, 4, 2100, 1650, 1100); // checked
+    servo_ctrl_add_device(servos, 20, 0x42, 1, 1900, 1500, 1000); // checked
     /*5-9*/
     servo_ctrl_add_device(servos, 1, 0x42, 6, 2000, 1500, 1000);
     servo_ctrl_add_device(servos, 6, 0x42, 8, 2000, 1500, 1000);
-    servo_ctrl_add_device(servos, 11, 0x42, 9, 2000, 1500, 1000);
-    servo_ctrl_add_device(servos, 16, 0x42, 5, 2000, 1500, 1000);  // checked
+    servo_ctrl_add_device(servos, 11, 0x42, 9, 2000, 1550, 1000);
+    servo_ctrl_add_device(servos, 16, 0x42, 5, 1900, 1400, 1000); // checked
     servo_ctrl_add_device(servos, 21, 0x42, 7, 1300, 700, 500);
     /*10-14*/
     servo_ctrl_add_device(servos, 2, 0x42, 10, 1900, 1500, 1000);
     servo_ctrl_add_device(servos, 7, 0x42, 12, 2100, 1700, 1200);
     servo_ctrl_add_device(servos, 12, 0x42, 14, 1900, 1500, 1000);
-    servo_ctrl_add_device(servos, 17, 0x42, 11, 2200, 1800, 800);
-    servo_ctrl_add_device(servos, 22, 0x42, 13, 2400, 2100, 1200);
+    servo_ctrl_add_device(servos, 17, 0x42, 11, 2200, 1850, 1300);
+    servo_ctrl_add_device(servos, 22, 0x42, 13, 2450, 2100, 1600);
 
     /*15-19*/
     servo_ctrl_add_device(servos, 3, 0x40, 1, 2000, 1500, 1000);
-    servo_ctrl_add_device(servos, 8, 0x40,  4, 2000, 1500, 1000);
+    servo_ctrl_add_device(servos, 8, 0x40, 4, 2000, 1500, 1000);
     servo_ctrl_add_device(servos, 13, 0x40, 2, 2000, 1500, 1000);
     servo_ctrl_add_device(servos, 18, 0x40, 0, 2000, 1500, 1000);
     servo_ctrl_add_device(servos, 23, 0x40, 3, 2300, 1900, 1400);
     /*20-24*/
     servo_ctrl_add_device(servos, 4, 0x40, 5, 1950, 1450, 950);
     servo_ctrl_add_device(servos, 9, 0x40, 8, 1900, 1400, 900);
-    servo_ctrl_add_device(servos, 14, 0x40, 7, 2150, 1650, 1150);
-    servo_ctrl_add_device(servos, 19, 0x40, 6, 2050, 1550, 1050);
-    servo_ctrl_add_device(servos, 24, 0x40, 9, 2150, 1650, 1150);
+    servo_ctrl_add_device(servos, 14, 0x40, 7, 2150, 1670, 1150);
+    servo_ctrl_add_device(servos, 19, 0x40, 6, 2050, 1600, 1050);
+    servo_ctrl_add_device(servos, 24, 0x40, 9, 2050, 1650, 1150);
 
 
-
-
-    for(int i = 0; i < NO_OF_SERVOS; i++) {
+    for (int i = 0; i < NO_OF_SERVOS; i++) {
         servos[i].position = servo_pos_center;
     }
     LOG_INFO("All servos devices are added");
-    int counter=0;
-    do
-    {
-       counter=servo_ctrl_update(servos); 
-       Serial.println(counter);
-    }while (counter>0) ;
-
+    int counter = 0;
+    do {
+        counter = servo_ctrl_update(servos);
+    } while (counter > 0);
 
     LOG_INFO("Servos initialized");
 }
 
 void initializeLEDs(leds_ctrl_str_t* leds) {
-    
+
     pinMode(LED_LAMP_SCLK, OUTPUT);
     pinMode(LED_LAMP_LATCH, OUTPUT);
     pinMode(LED_LAMP_OE, OUTPUT);
     pinMode(LED_LAMP_SER, OUTPUT);
+
+    pinMode(LED_BAR_STATIC_SER_RCLK, OUTPUT);
+    pinMode(LED_BAR_STATIC_SER_SCLK, OUTPUT);
     pinMode(LED_BAR_STATIC_SER_OE, OUTPUT);
-    digitalWrite(LED_LAMP_OE, LOW);
-    digitalWrite(LED_BAR_STATIC_SER_OE, LOW);
+    pinMode(LED_BAR_STATIC_SER_0, OUTPUT);
+    pinMode(LED_BAR_STATIC_SER_1, OUTPUT);
+    pinMode(LED_BAR_STATIC_SER_2, OUTPUT);
+    pinMode(LED_BAR_STATIC_SER_3, OUTPUT);
+    digitalWrite(LED_BAR_STATIC_SER_OE, HIGH);
+    digitalWrite(LED_LAMP_OE, HIGH);
+
+    // leds->led_lamp_left_col_pwr_pc9685_id=...
+    // leds->led_lamp_right_col_pwr_pc9685_id=...
+    leds->ledbar_static_pwr_pc9685_id = 0x40;
+    leds->ledbar_static_pwr_channel   = 12;
+
+    // Configure the Lamps
+
+    leds->led_lamp[0][0].channel = 0;
+    leds->led_lamp[1][0].channel = 1;
+    leds->led_lamp[2][0].channel = 2;
+    leds->led_lamp[3][0].channel = 3;
+    leds->led_lamp[4][0].channel = 4;
+    leds->led_lamp[0][1].channel = 5;
+    leds->led_lamp[1][1].channel = 6;
+    leds->led_lamp[2][1].channel = 7;
+    leds->led_lamp[3][1].channel = 8;
+    leds->led_lamp[4][1].channel = 9;
 
 
-    led_controller_init(millis_wrapper, led_bar_set_pwm_duty_cycle, led_bar_static_set_state, led_lamp_set_state, leds);
+    leds->ledbar_static[0][0].device_no = 2; //?
+    leds->ledbar_static[0][0].channel   = 0; //?
+    leds->ledbar_static[0][1].device_no = 2; //?
+    leds->ledbar_static[0][1].channel   = 1; //?
+    leds->ledbar_static[0][2].device_no = 2; //>
+    leds->ledbar_static[0][2].channel   = 2; //?
+    leds->ledbar_static[0][3].device_no = 2; //
+    leds->ledbar_static[0][3].channel   = 3; //
+    leds->ledbar_static[0][4].device_no = 2; ///
+    leds->ledbar_static[0][4].channel   = 4; //
+
+    leds->ledbar_static[1][0].device_no = 2; //
+    leds->ledbar_static[1][0].channel   = 5; //
+    leds->ledbar_static[1][1].device_no = 2; //
+    leds->ledbar_static[1][1].channel   = 6; //
+    leds->ledbar_static[1][2].device_no = 2; //
+    leds->ledbar_static[1][2].channel   = 7; //
+    leds->ledbar_static[1][3].device_no = 0; //
+    leds->ledbar_static[1][3].channel   = 0; //
+    leds->ledbar_static[1][4].device_no = 0; //
+    leds->ledbar_static[1][4].channel   = 1; //
+
+
+    leds->ledbar_static[2][0].device_no = 0; //
+    leds->ledbar_static[2][0].channel   = 2; //
+    leds->ledbar_static[2][1].device_no = 0; //
+    leds->ledbar_static[2][1].channel   = 3; //
+    leds->ledbar_static[2][2].device_no = 0; //
+    leds->ledbar_static[2][2].channel   = 4; //
+    leds->ledbar_static[2][3].device_no = 0; //
+    leds->ledbar_static[2][3].channel   = 5; //
+    leds->ledbar_static[2][4].device_no = 0; //
+    leds->ledbar_static[2][4].channel   = 6; //
+
+    leds->ledbar_static[3][0].device_no = 3; //
+    leds->ledbar_static[3][0].channel   = 0; //
+    leds->ledbar_static[3][1].device_no = 3; //
+    leds->ledbar_static[3][1].channel   = 1; //
+    leds->ledbar_static[3][2].device_no = 3; //
+    leds->ledbar_static[3][2].channel   = 2; //
+    leds->ledbar_static[3][3].device_no = 3; //
+    leds->ledbar_static[3][3].channel   = 3; //
+    leds->ledbar_static[3][4].device_no = 3; //
+    leds->ledbar_static[3][4].channel   = 4; //
+
+    leds->ledbar_static[4][0].device_no = 3; //
+    leds->ledbar_static[4][0].channel   = 5; //
+    leds->ledbar_static[4][1].device_no = 3; //
+    leds->ledbar_static[4][1].channel   = 6; //
+    leds->ledbar_static[4][2].device_no = 3; //
+    leds->ledbar_static[4][2].channel   = 7; //
+    leds->ledbar_static[4][3].device_no = 1; //
+    leds->ledbar_static[4][3].channel   = 0; //
+    leds->ledbar_static[4][4].device_no = 1; //
+    leds->ledbar_static[4][4].channel   = 1; //
+
+    leds->ledbar_static[5][0].device_no = 1; //
+    leds->ledbar_static[5][0].channel   = 2; //
+    leds->ledbar_static[5][1].device_no = 1; //
+    leds->ledbar_static[5][1].channel   = 3; //
+    leds->ledbar_static[5][2].device_no = 1; //
+    leds->ledbar_static[5][2].channel   = 4; //
+    leds->ledbar_static[5][3].device_no = 1; //
+    leds->ledbar_static[5][3].channel   = 5; //
+    leds->ledbar_static[5][4].device_no = 1; //
+    leds->ledbar_static[5][4].channel   = 6; //
+
 
     // Initialize the led bards that are on the switches, not placed in a for loop so they can be calibrated
     // idividually
     /*0-4*/
-    led_controller_add_led_switch_device(&leds->ledbar_switch[0][0], 0x42, 0);
-    led_controller_add_led_switch_device(&leds->ledbar_switch[0][1], 0x42, 1);
-    led_controller_add_led_switch_device(&leds->ledbar_switch[0][2], 0x42, 2);
-    led_controller_add_led_switch_device(&leds->ledbar_switch[0][3], 0x42, 3);
-    led_controller_add_led_switch_device(&leds->ledbar_switch[0][4], 0x42, 4);
+    led_controller_add_led_switch_device(&leds->ledbar_switch[0][0], 0x43, 0);
+    led_controller_add_led_switch_device(&leds->ledbar_switch[0][1], 0x43, 1);
+    led_controller_add_led_switch_device(&leds->ledbar_switch[0][2], 0x43, 2);
+    led_controller_add_led_switch_device(&leds->ledbar_switch[0][3], 0x43, 3);
+    led_controller_add_led_switch_device(&leds->ledbar_switch[0][4], 0x43, 4);
     /*5-9*/
-    led_controller_add_led_switch_device(&leds->ledbar_switch[1][0], 0x42, 5);
-    led_controller_add_led_switch_device(&leds->ledbar_switch[1][1], 0x42, 6);
-    led_controller_add_led_switch_device(&leds->ledbar_switch[1][2], 0x42, 7);
-    led_controller_add_led_switch_device(&leds->ledbar_switch[1][3], 0x42, 8);
-    led_controller_add_led_switch_device(&leds->ledbar_switch[1][4], 0x42, 9);
+    led_controller_add_led_switch_device(&leds->ledbar_switch[1][0], 0x43, 5);
+    led_controller_add_led_switch_device(&leds->ledbar_switch[1][1], 0x43, 6);
+    led_controller_add_led_switch_device(&leds->ledbar_switch[1][2], 0x43, 7);
+    led_controller_add_led_switch_device(&leds->ledbar_switch[1][3], 0x43, 8);
+    led_controller_add_led_switch_device(&leds->ledbar_switch[1][4], 0x43, 9);
     /*10-14*/
-    led_controller_add_led_switch_device(&leds->ledbar_switch[2][0], 0x42, 10);
-    led_controller_add_led_switch_device(&leds->ledbar_switch[2][1], 0x42, 11);
-    led_controller_add_led_switch_device(&leds->ledbar_switch[2][2], 0x42, 12);
-    led_controller_add_led_switch_device(&leds->ledbar_switch[2][3], 0x42, 13);
-    led_controller_add_led_switch_device(&leds->ledbar_switch[2][4], 0x42, 14);
+    led_controller_add_led_switch_device(&leds->ledbar_switch[2][0], 0x43, 10);
+    led_controller_add_led_switch_device(&leds->ledbar_switch[2][1], 0x43, 11);
+    led_controller_add_led_switch_device(&leds->ledbar_switch[2][2], 0x43, 12);
+    led_controller_add_led_switch_device(&leds->ledbar_switch[2][3], 0x43, 13);
+    led_controller_add_led_switch_device(&leds->ledbar_switch[2][4], 0x43, 14);
     /*15-19*/
-    led_controller_add_led_switch_device(&leds->ledbar_switch[3][0], 0x42, 15);
-    led_controller_add_led_switch_device(&leds->ledbar_switch[3][1], 0x43, 0);
-    led_controller_add_led_switch_device(&leds->ledbar_switch[3][2], 0x43, 1);
-    led_controller_add_led_switch_device(&leds->ledbar_switch[3][3], 0x43, 2);
-    led_controller_add_led_switch_device(&leds->ledbar_switch[3][4], 0x43, 3);
+    led_controller_add_led_switch_device(&leds->ledbar_switch[3][0], 0x41, 0);
+    led_controller_add_led_switch_device(&leds->ledbar_switch[3][1], 0x41, 1);
+    led_controller_add_led_switch_device(&leds->ledbar_switch[3][2], 0x41, 3);
+    led_controller_add_led_switch_device(&leds->ledbar_switch[3][3], 0x41, 2);
+    led_controller_add_led_switch_device(&leds->ledbar_switch[3][4], 0x41, 4);
     /*20-24*/
-    led_controller_add_led_switch_device(&leds->ledbar_switch[4][0], 0x43, 4);
-    led_controller_add_led_switch_device(&leds->ledbar_switch[4][1], 0x43, 5);
-    led_controller_add_led_switch_device(&leds->ledbar_switch[4][2], 0x43, 6);
-    led_controller_add_led_switch_device(&leds->ledbar_switch[4][3], 0x43, 7);
-    led_controller_add_led_switch_device(&leds->ledbar_switch[4][4], 0x43, 8);
+    led_controller_add_led_switch_device(&leds->ledbar_switch[4][0], 0x41, 5);
+    led_controller_add_led_switch_device(&leds->ledbar_switch[4][1], 0x41, 6);
+    led_controller_add_led_switch_device(&leds->ledbar_switch[4][2], 0x41, 7);
+    led_controller_add_led_switch_device(&leds->ledbar_switch[4][3], 0x41, 8);
+    led_controller_add_led_switch_device(&leds->ledbar_switch[4][4], 0x41, 9);
+
+
+    for (int row = 0; row < NO_OF_STATIC_LEDBARS_LINES; row++) {
+        for (int col = 0; col < NO_OF_STATIC_LEDBARS_PER_LINE; col++) {
+            leds->ledbar_static[row][col].state = lamp_state_off;
+        }
+    }
+
+
+    led_controller_init(millis_wrapper, led_bar_set_pwm_duty_cycle, led_bar_static_set_state, led_lamp_set_state, leds);
+    digitalWrite(LED_BAR_STATIC_SER_OE, LOW);
+    digitalWrite(LED_LAMP_OE, LOW);
 }
 
 void initializePca9685() {
@@ -308,9 +459,9 @@ void initializePca9685() {
     pca9685.addDevice(0x43);
     // pca9685.setupOutputEnablePin(constants::output_enable_pin); //ΤΟΔΟ
     pca9685.setSingleDeviceToFrequency(0x40, 50);
-    pca9685.setSingleDeviceToFrequency(0x41,50);
+    pca9685.setSingleDeviceToFrequency(0x41, 2000);
     pca9685.setSingleDeviceToFrequency(0x42, 50);
-    pca9685.setSingleDeviceToFrequency(0x43, 50);
+    pca9685.setSingleDeviceToFrequency(0x43, 2000);
 
     // Verify device connection
     device_frequency = pca9685.getSingleDeviceFrequency(0x40);
@@ -330,16 +481,6 @@ void initializePca9685() {
     Serial.println(device_frequency);
     delay(100);
     LOG_INFO("pca9685 set");
-}
-
-void initRotaryEncoder() {
-    pinMode(ROTARY_A_PIN, INPUT_PULLUP);
-    pinMode(ROTARY_B_PIN, INPUT_PULLUP);
-    pinMode(ROTARY_BUTTON_PIN, INPUT_PULLUP);
-    attachInterrupt(ROTARY_A_PIN, Rotary_AB_pin_callback_fuction, FALLING);
-    attachInterrupt(ROTARY_B_PIN, Rotary_AB_pin_callback_fuction, FALLING);
-    attachInterrupt(ROTARY_BUTTON_PIN, Rotary_button_pin_callback_fuction, FALLING);
-    Rotary_init(rotary_read_pin_A, rotary_read_pin_B, rotary_read_button, millis_wrapper);
 }
 
 void drawLevel(map_t* map) {
@@ -381,8 +522,13 @@ void drawLevel(map_t* map) {
                     (map->switches[lineIndex][columnIndex].has_power) ? lamp_state_on : lamp_state_off;
             }
         }
+<<<<<<< Updated upstream
         leds.led_lamp[0][lineIndex].state = (map->start_nodes[lineIndex] != 0) ? lamp_state_on : lamp_state_off;
         leds.led_lamp[1][lineIndex].state = (lineIndex == map->line_end_goal) ? lamp_state_on : lamp_state_off;
+=======
+        leds.led_lamp[lineIndex][0].state = (map->start_nodes[lineIndex] != 0) ? lamp_state_on : lamp_state_off;
+        leds.led_lamp[lineIndex][1].state = (activeSegments[lineIndex][5] != 0) ? lamp_state_on : lamp_state_off;
+>>>>>>> Stashed changes
     }
 
     led_controller_update(&leds);
@@ -447,112 +593,68 @@ void shutDownDevice() {
 }
 
 
-void temp_test()
-{
-    nixie_controller_init(nixie_init_pins, nixie_set_number, nixie_power_off, millis);
-  // nixie_controller_test();
-
-    pinMode(LED_LAMP_SCLK, OUTPUT);
-    pinMode(LED_LAMP_LATCH, OUTPUT);
-    pinMode(LED_LAMP_OE, OUTPUT);
-    pinMode(LED_LAMP_SER, OUTPUT);
-    pinMode(LED_BAR_STATIC_SER_OE, OUTPUT);
-   
-//     led_controller_init(millis_wrapper, led_bar_set_pwm_duty_cycle, led_bar_static_set_state, led_lamp_set_state, &leds);
-//     digitalWrite(LED_LAMP_OE, LOW);
-//     digitalWrite(LED_BAR_STATIC_SER_OE, LOW);
-
-//     for (unsigned char col = 0; col < NO_OF_LED_LAMPS_COL; col++) {
-//         for (unsigned char row = 0; row < NO_OF_LED_LAMPS_PER_COL; row++) {
-//                    leds.led_lamp[col][row].state = lamp_state_off;
-//         }
-//     }
-//     leds.led_lamp[0][0].state = lamp_state_on;
-//     leds.led_lamp[0][0].state = lamp_state_on;
-//  Serial.println("new");
-//   //  while ((1))
-//  //   {
-//         /* code */
-//         led_lamp_set_state(0,1);
-//         led_lamp_set_state(1,1);
-//         led_lamp_set_state(2,1);
-//         led_lamp_set_state(3,1);
-//         //led_controller_update(&leds);
-//         Serial.println("test");
-//      //    led_controller_test(&leds);  
-//  //   }
-    initializePca9685();
-    init_servos();
-
-   
-    // setDeviceChannelServoPulseDuration_wrapper(0x42,0,1200);
-    //  delay(500);
-    // setDeviceChannelServoPulseDuration_wrapper(0x42,1,1200);
-    //  delay(500);
-    // setDeviceChannelServoPulseDuration_wrapper(0x42,2,1200);
-    //  delay(500);
-    // setDeviceChannelServoPulseDuration_wrapper(0x42,3,1200); //problem
-    // delay(500);
-    // setDeviceChannelServoPulseDuration_wrapper(0x42,4,1200);
-    // delay(500);
-// //
-// //
-// //
-    // setDeviceChannelServoPulseDuration_wrapper(0x42,6,1200);
-    // delay(500);
-    // setDeviceChannelServoPulseDuration_wrapper(0x42, 8,1200);
-    // delay(500);
-    // setDeviceChannelServoPulseDuration_wrapper(0x42, 9,1200);
-    // delay(500);
-    // setDeviceChannelServoPulseDuration_wrapper(0x42,5,1200); //3
-    // delay(500);
-    // setDeviceChannelServoPulseDuration_wrapper(0x42,7,500);
-    // delay(500);
-//
-    //setDeviceChannelServoPulseDuration_wrapper(0x42,10,1900);
-    //delay(500);
-    //setDeviceChannelServoPulseDuration_wrapper(0x42,12,2000);
-    //delay(500);
-    //   setDeviceChannelServoPulseDuration_wrapper(0x42,14,1900);
-    //delay(500);
-    //setDeviceChannelServoPulseDuration_wrapper(0x42,11,2200);
-    //delay(500);
-    //setDeviceChannelServoPulseDuration_wrapper(0x42,13,2400);
-   // setDeviceChannelServoPulseDuration_wrapper(0x42,13,2100); // center
-    // setDeviceChannelServoPulseDuration_wrapper(0x42,13,1200); // low
-   // delay(500);
+void temp_test() {
 
 
- //  setDeviceChannelServoPulseDuration_wrapper(0x40,1,1500);
- //  delay(500); 
- //  setDeviceChannelServoPulseDuration_wrapper(0x40,4,1500);  
- //  delay(500); 
- //setDeviceChannelServoPulseDuration_wrapper(0x40,2,1500); //disco
- //  delay(500);
- //setDeviceChannelServoPulseDuration_wrapper(0x40,0,1500); //disco
- //  delay(500);
- //  setDeviceChannelServoPulseDuration_wrapper(0x40,3,1900); // 1900 center // 2300 high
- //  delay(500);
-
- setDeviceChannelServoPulseDuration_wrapper(0x40,5,1450); //1
- delay(500); 
-  setDeviceChannelServoPulseDuration_wrapper(0x40,8,1400); //2
- delay(500); 
- setDeviceChannelServoPulseDuration_wrapper(0x40,7,1650);  //3
- delay(500);
- setDeviceChannelServoPulseDuration_wrapper(0x40,6,1550);  //4
- delay(500);
- setDeviceChannelServoPulseDuration_wrapper(0x40,9,1550);  //5
- delay(500);
 
 
-//   time_display_init(setDeviceChannelServoPulseDuration_wrapper, 0x40, 11);
-    for (int i = 0; i <  100; ++i)
-    {
- //       time_display_set_time(i, 100);
+nixie_controller_test();
+    led_controller_test(&leds);
+    for (int i = 0; i < 100; ++i) {
+        time_display_set_time(i, 100);
         delay(50);
     }
-//   servo_ctrl_test(servos);
+    
+    servo_ctrl_test(servos);
+
+
+ //   leds.ledbar_switch[0][0].state = lamp_state_blink;
+ //   leds.ledbar_switch[0][1].state = lamp_state_on;
+ //   static rotary_t rotary_status;
+//
+ //   static int index_col;
+//
+ //   while (1) {
+ //       led_controller_update(&leds);
+ //       // Serial.print(leds.ledbar_switch[0][0].blink_state);
+ //       // Serial.print("\t");
+ //       //   Serial.println(leds.ledbar_switch[0][0].blink_power);
+ //       nixie_controller_diplay_number(leds.ledbar_switch[0][0].blink_state);
+//
+ //       if (leds.ledbar_switch[0][0].blink_power > 0) {
+ //           // time_display_set_time(leds.ledbar_switch[0][0].blink_power, MAX_POWER);
+ //           rotary_status.direction = 0;
+ //       }
+ //       Rotary_get_status(&rotary_status);
+//
+ //       if (rotary_status.direction != 0) {
+ //           Serial.print(test_a_value);
+ //           Serial.print("\t");
+ //           Serial.print(test_b_value);
+ //           Serial.print("\t");
+ //           Serial.print(test_button_read);
+ //           Serial.print("\t");
+ //           Serial.print(rotary_status.direction);
+ //           Serial.print("\t");
+ //           Serial.println(rotary_status.button);
+ //           test_a_read      = 0;
+ //           test_b_read      = 0;
+ //           test_button_read = 0;
+ //       }
+//
+//
+ //       if (rotary_status.direction == 1) {
+ //           leds.ledbar_switch[0][index_col].state = lamp_state_off;
+ //           index_col                              = 1;
+ //           leds.ledbar_switch[0][index_col].state = lamp_state_on;
+ //       } else if (rotary_status.direction == -1) {
+ //           leds.ledbar_switch[0][index_col].state = lamp_state_off;
+//
+//
+ //           index_col                              = 0;
+ //           leds.ledbar_switch[0][index_col].state = lamp_state_on;
+ //       }
+ //   }
 }
 
 void init_mui_structures(userInterface_t** gui) {
@@ -563,10 +665,9 @@ void init_mui_structures(userInterface_t** gui) {
     (*gui)->appendInfo          = appendInfo;
     (*gui)->get_controls_status = get_controls_status;
     (*gui)->terminate           = shutDownDevice;
-    // initVisuals();
-    temp_test();
-}   
 
+ //   temp_test();
+}
 
 
 void test_peripherals() {

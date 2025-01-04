@@ -80,22 +80,22 @@ unsigned char servo_ctrl_update(servo_motor_t servos[NO_OF_SERVOS]) {
        servos_active_flag=(no_of_elements>0);
       
     }
-    return servo_queue[tail_index];
+    return servos_active_flag;
 }
 
 void servo_ctrl_test(servo_motor_t servos[NO_OF_SERVOS]) {
     for (int i = 0; i < NO_OF_SERVOS; i++) {
-        servos->position = servo_pos_low;
+        servos[i].position = servo_pos_low;
     }
     while (servo_ctrl_update(servos))
         ;
     for (int i = 0; i < NO_OF_SERVOS; i++) {
-        servos->position = servo_pos_high;
+        servos[i].position = servo_pos_high;
     }
     while (servo_ctrl_update(servos))
         ;
     for (int i = 0; i < NO_OF_SERVOS; i++) {
-        servos->position = servo_pos_center;
+        servos[i].position = servo_pos_center;
     }
     while (servo_ctrl_update(servos))
         ;

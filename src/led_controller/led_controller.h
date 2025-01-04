@@ -15,22 +15,40 @@ extern "C" {
 #define NO_OF_LED_LAMPS_PER_COL 5
 #define NO_OF_LED_LAMPS_COL 2
 
-#define BLINK_ON_TIME_MS 200
-#define BLINK_OFF_TIME_MS 100
-#define MAX_POWER 2000  
-#define BLINK_ON_INCREMENT ((MAX_POWER-MIN_POWER)/BLINK_ON_TIME_MS)
-#define BLINK_OFF_INCREMENT ((MAX_POWER-MIN_POWER)/BLINK_OFF_TIME_MS)
 
-#define LED_TEST_PERIOD 1000
+#define BLINK_NO_OF_STEPS 50
+#define BLINK_ON_TIME_MS 500
+#define BLINK_OFF_TIME_MS 200
 
-#define MIN_POWER 50
+#define BLINK_POWERING_UP_TOTAL_TIME_MS 200
+#define BLINK_POWERING_DOWN_TOTAL_TIME_MS 200
+
+#define BLINK_ON_INCREMENT_TIME_MS (BLINK_POWERING_UP_TOTAL_TIME_MS/BLINK_NO_OF_STEPS)
+#define BLINK_OFF_INCREMENT_TIME_MS (BLINK_POWERING_DOWN_TOTAL_TIME_MS/BLINK_NO_OF_STEPS)
+
+#define BLINK_ON_INCREMENT ((MAX_BLINK_POWER-MIN_POWER)/BLINK_NO_OF_STEPS)
+#define BLINK_OFF_INCREMENT ((MAX_BLINK_POWER-MIN_POWER)/BLINK_NO_OF_STEPS)
+
+
+#define MIN_POWER 0
+#define MAX_POWER 100  
+#define MAX_BLINK_POWER 100
+
+#define LED_TEST_PERIOD 500
 
 typedef enum lamp_state
 {
     lamp_state_off,
+    lamp_state_on,
     lamp_state_blink,
-    lamp_state_on
 }lamp_state_t;
+
+typedef enum blink_state{
+blink_off,
+blink_powering_up,
+blink_on,
+blink_powering_down
+}blink_state_t;
 
 typedef struct ledbar_switch
 {
@@ -39,8 +57,8 @@ typedef struct ledbar_switch
     unsigned int pc9685_id;
     unsigned char channel;
     unsigned long timestamp;
-    unsigned char blink_state;
-    unsigned int blink_power;
+    blink_state_t blink_state;
+     int blink_power;
 }ledbar_switch_t;
 
 typedef struct ledbar_static
@@ -58,11 +76,11 @@ typedef struct led_lamp
     unsigned char channel;
 }led_lamp_t;
 
-typedef struct leds_ctrl_str
+typedef struct leds_ctrl_str 
 {
     ledbar_static_t ledbar_static[NO_OF_STATIC_LEDBARS_PER_LINE][NO_OF_STATIC_LEDBARS_LINES];
     ledbar_switch_t  ledbar_switch[NO_OF_SWITCH_LEDS_PER_LINE][NO_OF_SWITCH_LEDS_LINES];
-    led_lamp_t led_lamp[NO_OF_LED_LAMPS_COL][NO_OF_LED_LAMPS_PER_COL];
+    led_lamp_t led_lamp[NO_OF_LED_LAMPS_PER_COL][NO_OF_LED_LAMPS_COL];
     
     unsigned int led_lamp_left_col_pwr_pc9685_id;
     unsigned char led_lamp_left_col_pwr_channel;

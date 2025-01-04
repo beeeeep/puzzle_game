@@ -34,8 +34,8 @@ function_status_t puzzleGameInit(game_state_t* game_state, void (*init_ui_struct
    LOG_INFO("Abstract game initialized");
    
    init_ui_structures(&ui);
-   // (*ui->initVisuals)();
-   // (*ui->initControls)();
+    (*ui->initVisuals)();
+    (*ui->initControls)();
    return SUCCESS;
 }
 
@@ -47,19 +47,19 @@ function_status_t puzzleGameMainIteration(game_state_t* game_state)
 
       if (game_state->current_level == 0 && button_pushed_flag == 0)
       {
-         switches_time_reset(millis_timestamp());
+         switches_time_reset(millis_timestamp());     
       }
-      return_on_fail(
-         switches_time_calculate(millis_timestamp(), switches_time_get_level_time(game_state->current_level % 20), 1, game_state->time_left));
-
+   //   return_on_fail(
+  //       switches_time_calculate(millis_timestamp(), switches_time_get_level_time(game_state->current_level % 20), 1, game_state->time_left));
       (*ui->drawLevel)(&game_state->map);
       (*ui->appendInfo)(game_state->map.line_end_goal, game_state->time_left, game_state->current_level);
-
-      const bool win = has_player_won_level(game_state->map.end_nodes, game_state->map.line_end_goal);
+      const bool win =has_player_won_level(game_state->map.end_nodes, game_state->map.line_end_goal);
+    
       if (win || game_state->time_left == 0)
       {
          if (win)
          {
+            LOG_INFO("Game win"); 
             game_state->current_level++;
             sleep(5);
          }

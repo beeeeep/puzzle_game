@@ -14,18 +14,18 @@ userInterface_t* my_ui; // TODO: remove
 void setup() {
     Serial.begin(115200);
     Serial.print("Started setting it up\n");
-    init_wifi(ssid, password, host);
     init_mui_structures(&my_ui);
-    // initializationCheck = puzzleGameInit(&game_state, init_mui_structures) == SUCCESS;
+    init_wifi(ssid, password, host);
+    initializationCheck = puzzleGameInit(&game_state, init_mui_structures) == SUCCESS;
     Serial.print("Finished setting it up\n");
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-  // if (initializationCheck)
-  // {
-  //    puzzleGameMainIteration(&game_state);
-  // }
+   if (initializationCheck)
+   {
+     puzzleGameMainIteration(&game_state);
+  }
   webota.handle();
 }
 

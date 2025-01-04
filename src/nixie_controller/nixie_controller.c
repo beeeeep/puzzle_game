@@ -50,6 +50,10 @@ void nixie_controller_flash_number(unsigned char number) {
     timestamp = __nixie_milliseconds();
     while (__nixie_milliseconds() - timestamp < NUMBER_FLASH_ON_TIME)
         ; // Wait for some time
+    nixie_controller_diplay_number(NIXIE_OFF);
+    timestamp = __nixie_milliseconds();
+    while (__nixie_milliseconds() - timestamp < NUMBER_FLASH_OFF_TIME);
+
 }
 
 void nixie_controller_test(void) {

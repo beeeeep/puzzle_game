@@ -7,7 +7,7 @@ extern "C" {
 #include <stdio.h>
 
 #define NIXIE_OFF 255
-#define NUMBER_FLASH_ON_TIME 2000
+#define NUMBER_FLASH_ON_TIME 1000
 #define NUMBER_FLASH_OFF_TIME 500
 
 typedef void (*nixie_driver_set_pins_t) (void);

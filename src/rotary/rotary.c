@@ -1,4 +1,4 @@
-#include "Rotary.h"
+#include "rotary.h"
 
 static rotary_t rotary_status;
 static unsigned int hold_timestamp              = 0;
@@ -21,7 +21,7 @@ void Rotary_get_status(rotary_t* status) {
     static unsigned char button_read_flag = 0;
     status->direction                     = rotary_status.direction;
     rotary_status.direction               = 0;
-    Rotary_button_pin_callback_fuction();
+   Rotary_button_pin_callback_fuction();
     if (button_state == BUTTON_HOLDING_DOWN && button_read_flag == 0) {
         status->button                 = 1;
         status->button_hold_time_in_ms = (milliseconds() - hold_timestamp);
@@ -38,19 +38,21 @@ void Rotary_get_status(rotary_t* status) {
 
 void Rotary_AB_pin_callback_fuction(void) {
     static unsigned char rotary_state = 0;
-    unsigned char tempState           = get_rotary_B_pin_state() | (get_rotary_A_pin_state() << 1);
+    unsigned char tempState           = (get_rotary_A_pin_state() << 1)| get_rotary_B_pin_state() ;
 
-    if (tempState == 3) {
+    if (tempState == 0b11) {
         rotary_state = tempState;
-    } else if (rotary_state == 2) // TURN LEFT
+    } 
+    else if (rotary_state == 0b10) // TURN LEFT
     {
-        if (tempState == 1) {
+        if (tempState == 0b01) {
             rotary_state            = 0;
             rotary_status.direction = -1;
         }
-    } else if (rotary_state == 1) // TURN RIGHT
+    } 
+    else if (rotary_state == 0b01) // TURN RIGHT
     {
-        if (tempState == 2) {
+        if (tempState == 0b10) {
             rotary_state            = 0;
             rotary_status.direction = 1;
         }
@@ -60,7 +62,7 @@ void Rotary_AB_pin_callback_fuction(void) {
 }
 
 void Rotary_button_pin_callback_fuction(void) {
-    unsigned char buttonpin_state         = get_rotary_button_pin_state();
+    unsigned char buttonpin_state         = get_rotary_button_pin_state() && 1;
     static volatile unsigned int timestamp_on = 0;
 
     switch (button_state) {

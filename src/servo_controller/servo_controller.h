@@ -8,7 +8,7 @@ extern "C" {
 #include <stdio.h>
 
 #define NO_OF_SERVOS 25
-#define SERVO_UPDATE_RATE_MS 1000
+#define SERVO_UPDATE_RATE_MS 500
 
 typedef enum
 {
