@@ -18,10 +18,16 @@
   #include "data/moves2_final.in"
   #include "data/moves3_final.in"
   #include "data/moves4_final.in"
+  #include "data/moves5_final.in"
+  #include "data/moves6_final.in"
+  #include "data/moves7_final.in"
+  #include "data/moves8_final.in"
+  #include "data/moves9_final.in"
+  #include "data/moves10_final.in"
 #endif
 
 // for NUMBER_OF_MAPS_PER_MOVE look the file:  tools/numMovements.txt
-#define NUMBER_OF_MAPS_PER_MOVE (1 << 11)
+#define NUMBER_OF_MAPS_PER_MOVE 48
 #define NUM_COLS 5
 #define NUM_LINES 5
 
@@ -152,24 +158,39 @@ function_status_t pickMapOutOfAllUsingArray(const int numMovements, map_t * map)
     uint64_t compressedMap = 0;
     const size_t mapIndex = (size_t) roll(0, NUMBER_OF_MAPS_PER_MOVE - 1);
     LOG_INFO("mapIndex = %lu out of %d", mapIndex, NUMBER_OF_MAPS_PER_MOVE);
-    if (numMovements == 1)
+    switch (numMovements)
     {
+    case 1:
         compressedMap = moves1[mapIndex];
-    }
-    else if (numMovements == 2)
-    {
+        break;
+    case 2:
         compressedMap = moves2[mapIndex];
-    }
-    else if (numMovements == 3)
-    {
+        break;
+    case 3:
         compressedMap = moves3[mapIndex];
-    }
-    else if (numMovements == 4)
-    {
+        break;
+    case 4:
         compressedMap = moves4[mapIndex];
-    }
-    else
-    {
+        break;
+    case 5:
+        compressedMap = moves5[mapIndex];
+        break;
+    case 6:
+        compressedMap = moves6[mapIndex];
+        break;
+    case 7:
+        compressedMap = moves7[mapIndex];
+        break;
+    case 8:
+        compressedMap = moves8[mapIndex];
+        break;
+    case 9:
+        compressedMap = moves9[mapIndex];
+        break;
+    case 10:
+        compressedMap = moves10[mapIndex];
+        break;
+    default:
         LOG_ERROR("at pickMapOutOfAllUsingArray: numMovements = %d", numMovements);
         return FAILURE;
     }
