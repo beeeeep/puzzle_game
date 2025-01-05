@@ -81,9 +81,10 @@ function_status_t switches_init(game_state_t* game_state)
     if (does_fail(pickMapOutOfAll(numMovementsPerLevel[current_level], map)))
     {
         return FAILURE;
-    } 
+    }
+    game_state->time_left = switches_time_get_level_time(current_level);
     switches_distribute_power(map);
-
+    switches_time_reset(millis_timestamp());
     return SUCCESS;
 }
 
