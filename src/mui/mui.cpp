@@ -503,7 +503,6 @@ void drawLevel(map_t* map) {
         for (int columnIndex = 0; columnIndex < NO_OF_STATIC_LEDBARS_PER_LINE; ++columnIndex) {
             const new_state = (activeSegments[lineIndex][columnIndex] != 0) ? lamp_state_on : lamp_state_off; 
             if (leds.ledbar_static[columnIndex][lineIndex].state != new_state) {
-                leds.ledbar_static[columnIndex][lineIndex].state_prev = leds.ledbar_static[columnIndex][lineIndex].state;
                 leds.ledbar_static[columnIndex][lineIndex].state = new_state;
             }
         }
