@@ -309,14 +309,16 @@ void default_init_switch(three_way_switches_array_t switches, const int line, co
 
 void init_red_switches(three_way_switches_array_t switches)
 {
-    for (int i = 0; i < NUM_RED_SWITCHES; i++)
-    {
-        const int line = red_switches_indices[i].line;
-        const int col = red_switches_indices[i].column;
-        switches[line][col].switch_color = red;
-        switches[line][col].binded_switch_index.line = red_switches_connections[i].line_b;
-        switches[line][col].binded_switch_index.column = red_switches_connections[i].col_b;
-    }
+    // do not use red switches for now
+    // till the map making includes them
+    // for (int i = 0; i < NUM_RED_SWITCHES; i++)
+    // {
+    //     const int line = red_switches_indices[i].line;
+    //     const int col = red_switches_indices[i].column;
+    //     switches[line][col].switch_color = red;
+    //     switches[line][col].binded_switch_index.line = red_switches_connections[i].line_b;
+    //     switches[line][col].binded_switch_index.column = red_switches_connections[i].col_b;
+    // }
 }
 
 function_status_t switches_randomize_possition(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE], int end_nodes[NO_OF_3_WAY_LINES], int end_goal)
