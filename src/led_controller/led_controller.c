@@ -122,14 +122,17 @@ void led_controller_init(milliseconds_t millis_p, led_bar_set_pwm_duty_cycle_t l
         for (int col = 0; col < NO_OF_STATIC_LEDBARS_PER_LINE; col++) {
             leds->ledbar_static[line][col].state      = lamp_state_off;
             leds->ledbar_static[line][col].state_prev = lamp_state_on;
-            if (channel_index > 8) {
-                channel_index = 0;
-                device_index++;
-            } else {
-                channel_index++;
-            }
         }
+          for (int col = 0; col < NO_OF_SWITCH_LEDS_PER_LINE; col++) {
+            leds->ledbar_switch[line][col].state      = lamp_state_off;
+            leds->ledbar_switch[line][col].state_prev = lamp_state_on;
+        }
+
+
     }
+
+
+
     // Set init power to zero
     //  led_controller_set_lamps_power(0);
     leds->ledbar_static_power = 80;
@@ -178,41 +181,42 @@ void led_controller_test(leds_ctrl_str_t* led_controller_str) {
 
     static unsigned long timestamp;
     for (unsigned char col = 0; col < NO_OF_STATIC_LEDBARS_PER_LINE; col++) {
-        for (unsigned char row = 0; row < NO_OF_STATIC_LEDBARS_LINES; row++) {
+        for (unsigned char line = 0; line < NO_OF_STATIC_LEDBARS_LINES; line++) {
             timestamp                                         = ___millis();
-            led_controller_str->ledbar_static[col][row].state = 1;
-            led_controller_set_ledbar_static_state(&led_controller_str->ledbar_static[col][row]);
+            led_controller_str->ledbar_static[line][col].state = 1;
+            //led_controller_set_ledbar_static_state(&led_controller_str->ledbar_static[line][col]);
+            led_controller_update(led_controller_str);
             while (___millis() - timestamp < LED_TEST_PERIOD)
                 ;
-            led_controller_str->ledbar_static[col][row].state = 0;
-            led_controller_set_ledbar_static_state(&led_controller_str->ledbar_static[col][row]);
+            led_controller_str->ledbar_static[line][col].state = 0;
+            //led_controller_set_ledbar_static_state(&led_controller_str->ledbar_static[line][col]);
             led_controller_update(led_controller_str);
         }
     }
 
-    for (unsigned char row = 0; row < NO_OF_SWITCH_LEDS_LINES; row++) {
+    for (unsigned char line = 0; line < NO_OF_SWITCH_LEDS_LINES; line++) {
         for (unsigned char col = 0; col < NO_OF_SWITCH_LEDS_PER_LINE; col++) {
             timestamp                                         = ___millis();
-            led_controller_str->ledbar_switch[row][col].state = lamp_state_on;
-            led_controller_set_led_switch_state(&led_controller_str->ledbar_switch[row][col]);
+            led_controller_str->ledbar_switch[line][col].state = lamp_state_on;
+            led_controller_set_led_switch_state(&led_controller_str->ledbar_switch[line][col]);
             while (___millis() - timestamp < LED_TEST_PERIOD)
                 ;
-            led_controller_str->ledbar_switch[row][col].state = lamp_state_off;
-            led_controller_set_led_switch_state(&led_controller_str->ledbar_switch[row][col]);
+            led_controller_str->ledbar_switch[line][col].state = lamp_state_off;
+            led_controller_set_led_switch_state(&led_controller_str->ledbar_switch[line][col]);
             led_controller_update(led_controller_str);
         }
     }
 
     for (unsigned char col = 0; col < NO_OF_LED_LAMPS_COL; col++) {
-        for (unsigned char row = 0; row < NO_OF_LED_LAMPS_PER_COL; row++) {
+        for (unsigned char line = 0; line < NO_OF_LED_LAMPS_PER_COL; line++) {
             timestamp                                    = ___millis();
-            led_controller_str->led_lamp[row][col].state = lamp_state_on;
-            led_controller_set_lamp_state(&led_controller_str->led_lamp[row][col]);
+            led_controller_str->led_lamp[line][col].state = lamp_state_on;
+            led_controller_set_lamp_state(&led_controller_str->led_lamp[line][col]);
             led_controller_update(led_controller_str);
             while (___millis() - timestamp < LED_TEST_PERIOD)
                 ;
-            led_controller_str->led_lamp[row][col].state = lamp_state_off;
-            led_controller_set_lamp_state(&led_controller_str->led_lamp[row][col]);
+            led_controller_str->led_lamp[line][col].state = lamp_state_off;
+            led_controller_set_lamp_state(&led_controller_str->led_lamp[line][col]);
             led_controller_update(led_controller_str);
         }
     }

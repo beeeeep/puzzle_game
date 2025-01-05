@@ -78,7 +78,7 @@ typedef struct led_lamp
 
 typedef struct leds_ctrl_str 
 {
-    ledbar_static_t ledbar_static[NO_OF_STATIC_LEDBARS_PER_LINE][NO_OF_STATIC_LEDBARS_LINES];
+    ledbar_static_t ledbar_static[NO_OF_STATIC_LEDBARS_LINES][NO_OF_STATIC_LEDBARS_PER_LINE];
     ledbar_switch_t  ledbar_switch[NO_OF_SWITCH_LEDS_PER_LINE][NO_OF_SWITCH_LEDS_LINES];
     led_lamp_t led_lamp[NO_OF_LED_LAMPS_PER_COL][NO_OF_LED_LAMPS_COL];
     
