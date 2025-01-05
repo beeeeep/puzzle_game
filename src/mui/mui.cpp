@@ -240,11 +240,13 @@ void initVisuals() {
     if (needInitialization) {
         initializePca9685(); // This needs to be here because the pca9685 is used in the initialization of everything
                              // else
+        initializeLEDs(&leds);                     
         init_servos();
         time_display_init(setDeviceChannelServoPulseDuration_wrapper, 0x40, 11);
-        initializeLEDs(&leds);
+       
         nixie_controller_init(nixie_init_pins, nixie_set_number, nixie_power_off, millis);
         needInitialization = false;
+       test_peripherals();
         LOG_INFO("Visuals initialized");
     }
 }
@@ -336,70 +338,70 @@ void initializeLEDs(leds_ctrl_str_t* leds) {
 
     leds->ledbar_static[0][0].device_no = 2; //?
     leds->ledbar_static[0][0].channel   = 0; //?
-    leds->ledbar_static[0][1].device_no = 2; //?
-    leds->ledbar_static[0][1].channel   = 1; //?
-    leds->ledbar_static[0][2].device_no = 2; //>
-    leds->ledbar_static[0][2].channel   = 2; //?
-    leds->ledbar_static[0][3].device_no = 2; //
-    leds->ledbar_static[0][3].channel   = 3; //
-    leds->ledbar_static[0][4].device_no = 2; ///
-    leds->ledbar_static[0][4].channel   = 4; //
+    leds->ledbar_static[1][0].device_no = 2; //?
+    leds->ledbar_static[1][0].channel   = 1; //?
+    leds->ledbar_static[2][0].device_no = 2; //>
+    leds->ledbar_static[2][0].channel   = 2; //?
+    leds->ledbar_static[3][0].device_no = 2; //
+    leds->ledbar_static[3][0].channel   = 3; //
+    leds->ledbar_static[4][0].device_no = 2; ///
+    leds->ledbar_static[4][0].channel   = 4; //
 
-    leds->ledbar_static[1][0].device_no = 2; //
-    leds->ledbar_static[1][0].channel   = 5; //
+    leds->ledbar_static[0][1].device_no = 2; //
+    leds->ledbar_static[0][1].channel   = 5; //
     leds->ledbar_static[1][1].device_no = 2; //
     leds->ledbar_static[1][1].channel   = 6; //
-    leds->ledbar_static[1][2].device_no = 2; //
-    leds->ledbar_static[1][2].channel   = 7; //
-    leds->ledbar_static[1][3].device_no = 0; //
-    leds->ledbar_static[1][3].channel   = 0; //
-    leds->ledbar_static[1][4].device_no = 0; //
-    leds->ledbar_static[1][4].channel   = 1; //
+    leds->ledbar_static[2][1].device_no = 2; //
+    leds->ledbar_static[2][1].channel   = 7; //
+    leds->ledbar_static[3][1].device_no = 0; //
+    leds->ledbar_static[3][1].channel   = 0; //
+    leds->ledbar_static[4][1].device_no = 0; //
+    leds->ledbar_static[4][1].channel   = 1; //
 
 
-    leds->ledbar_static[2][0].device_no = 0; //
-    leds->ledbar_static[2][0].channel   = 2; //
-    leds->ledbar_static[2][1].device_no = 0; //
-    leds->ledbar_static[2][1].channel   = 3; //
+    leds->ledbar_static[0][2].device_no = 0; //
+    leds->ledbar_static[0][2].channel   = 2; //
+    leds->ledbar_static[1][2].device_no = 0; //
+    leds->ledbar_static[1][2].channel   = 3; //
     leds->ledbar_static[2][2].device_no = 0; //
     leds->ledbar_static[2][2].channel   = 4; //
-    leds->ledbar_static[2][3].device_no = 0; //
-    leds->ledbar_static[2][3].channel   = 5; //
-    leds->ledbar_static[2][4].device_no = 0; //
-    leds->ledbar_static[2][4].channel   = 6; //
+    leds->ledbar_static[3][2].device_no = 0; //
+    leds->ledbar_static[3][2].channel   = 5; //
+    leds->ledbar_static[4][2].device_no = 0; //
+    leds->ledbar_static[4][2].channel   = 6; //
 
-    leds->ledbar_static[3][0].device_no = 3; //
-    leds->ledbar_static[3][0].channel   = 0; //
-    leds->ledbar_static[3][1].device_no = 3; //
-    leds->ledbar_static[3][1].channel   = 1; //
-    leds->ledbar_static[3][2].device_no = 3; //
-    leds->ledbar_static[3][2].channel   = 2; //
+    leds->ledbar_static[0][3].device_no = 3; //
+    leds->ledbar_static[0][3].channel   = 0; //
+    leds->ledbar_static[1][3].device_no = 3; //
+    leds->ledbar_static[1][3].channel   = 1; //
+    leds->ledbar_static[2][3].device_no = 3; //
+    leds->ledbar_static[2][3].channel   = 2; //
     leds->ledbar_static[3][3].device_no = 3; //
     leds->ledbar_static[3][3].channel   = 3; //
-    leds->ledbar_static[3][4].device_no = 3; //
-    leds->ledbar_static[3][4].channel   = 4; //
+    leds->ledbar_static[4][3].device_no = 3; //
+    leds->ledbar_static[4][3].channel   = 4; //
 
-    leds->ledbar_static[4][0].device_no = 3; //
-    leds->ledbar_static[4][0].channel   = 5; //
-    leds->ledbar_static[4][1].device_no = 3; //
-    leds->ledbar_static[4][1].channel   = 6; //
-    leds->ledbar_static[4][2].device_no = 3; //
-    leds->ledbar_static[4][2].channel   = 7; //
-    leds->ledbar_static[4][3].device_no = 1; //
-    leds->ledbar_static[4][3].channel   = 0; //
+    leds->ledbar_static[0][4].device_no = 3; //
+    leds->ledbar_static[0][4].channel   = 5; //
+    leds->ledbar_static[1][4].device_no = 3; //
+    leds->ledbar_static[1][4].channel   = 6; //
+    leds->ledbar_static[2][4].device_no = 3; //
+    leds->ledbar_static[2][4].channel   = 7; //
+    leds->ledbar_static[3][4].device_no = 1; //
+    leds->ledbar_static[3][4].channel   = 0; //
     leds->ledbar_static[4][4].device_no = 1; //
     leds->ledbar_static[4][4].channel   = 1; //
 
-    leds->ledbar_static[5][0].device_no = 1; //
-    leds->ledbar_static[5][0].channel   = 2; //
-    leds->ledbar_static[5][1].device_no = 1; //
-    leds->ledbar_static[5][1].channel   = 3; //
-    leds->ledbar_static[5][2].device_no = 1; //
-    leds->ledbar_static[5][2].channel   = 4; //
-    leds->ledbar_static[5][3].device_no = 1; //
-    leds->ledbar_static[5][3].channel   = 5; //
-    leds->ledbar_static[5][4].device_no = 1; //
-    leds->ledbar_static[5][4].channel   = 6; //
+    leds->ledbar_static[0][5].device_no = 1; //
+    leds->ledbar_static[0][5].channel   = 2; //
+    leds->ledbar_static[1][5].device_no = 1; //
+    leds->ledbar_static[1][5].channel   = 3; //
+    leds->ledbar_static[2][5].device_no = 1; //
+    leds->ledbar_static[2][5].channel   = 4; //
+    leds->ledbar_static[3][5].device_no = 1; //
+    leds->ledbar_static[3][5].channel   = 5; //
+    leds->ledbar_static[4][5].device_no = 1; //
+    leds->ledbar_static[4][5].channel   = 6; //
 
 
     // Initialize the led bards that are on the switches, not placed in a for loop so they can be calibrated
@@ -485,9 +487,12 @@ void initializePca9685() {
 
 void drawLevel(map_t* map) {
     static long flash_on_timestamp;
-    static int flash_flag;
+    static int red_binded_switch_col;
+    static int red_binded_switch_line;
+    static int red_binded_switch_blink_flag;
     int activeSegments[5][6] = {0};
     int start_line           = -1;
+
     for (int i = 0; i < NO_OF_3_WAY_LINES; ++i) {
         if (map->start_nodes[i] != 0) {
             start_line = i;
@@ -495,40 +500,58 @@ void drawLevel(map_t* map) {
     }
     markActiveSegments(activeSegments, map->switches, start_line);
     // draw the leds
-    if (millis_timestamp() - flash_on_timestamp > 200) {
-        flash_on_timestamp = millis_timestamp();
-        (flash_flag == 0) ? (flash_flag = 1) : (flash_flag = 0);
-    }
     for (int lineIndex = 0; lineIndex < NO_OF_STATIC_LEDBARS_LINES; ++lineIndex) {
+
+
+        Serial.print("| ");    
         for (int columnIndex = 0; columnIndex < NO_OF_STATIC_LEDBARS_PER_LINE; ++columnIndex) {
-            const new_state = (activeSegments[lineIndex][columnIndex] != 0) ? lamp_state_on : lamp_state_off; 
-            if (leds.ledbar_static[columnIndex][lineIndex].state != new_state) {
-                leds.ledbar_static[columnIndex][lineIndex].state = new_state;
-            }
+
+            leds.ledbar_static[lineIndex][columnIndex].state = (activeSegments[lineIndex][columnIndex] == 1) ? lamp_state_on : lamp_state_off;
+            Serial.print(leds.ledbar_static[lineIndex][columnIndex].state);
+            Serial.print("\t,");
         }
+        Serial.println(" |");
         for (int columnIndex = 0; columnIndex < NO_OF_SWITCH_LEDS_PER_LINE; ++columnIndex) {
+            servos[lineIndex * 5 + columnIndex].position =switch_pos_to_servo_pos(map->switches[lineIndex][columnIndex].position);
             if ((map->switches[lineIndex][columnIndex].selected)) {
-                if (change_position_flag) {
-                    servo_pos_t prev_servo_position = servos[lineIndex * 5 + columnIndex].position;
-                    servos[lineIndex * 5 + columnIndex].position =
-                        switch_pos_to_servo_pos(map->switches[lineIndex][columnIndex].position);
+                
+                
+                if (change_position_flag) { 
                     change_position_flag = false;
                 }
                 // at rotary encoder position make it blinking
-                leds.ledbar_switch[columnIndex][lineIndex].state_prev =
-                    (map->switches[lineIndex][columnIndex].has_power) ? lamp_state_on : lamp_state_off;
                 leds.ledbar_switch[columnIndex][lineIndex].state = lamp_state_blink;
+
+                 if(map->switches[lineIndex][columnIndex].switch_color==red)
+                {               
+                    red_binded_switch_col = map->switches[lineIndex][columnIndex].binded_switch_index.column;
+                    red_binded_switch_line= map->switches[lineIndex][columnIndex].binded_switch_index.line;
+                    red_binded_switch_blink_flag=1;
+                } 
+                else
+                {
+                    red_binded_switch_blink_flag=0;
+                }                           
             } else {
-                leds.ledbar_switch[columnIndex][lineIndex].state =
-                    (map->switches[lineIndex][columnIndex].has_power) ? lamp_state_on : lamp_state_off;
+                leds.ledbar_switch[columnIndex][lineIndex].state =(map->switches[lineIndex][columnIndex].has_power) ? lamp_state_on : lamp_state_off;
+                 
+ 
+                 if(red_binded_switch_blink_flag)
+                {
+                    leds.ledbar_switch[red_binded_switch_col][red_binded_switch_line].state = lamp_state_blink;         
+                }
             }
         }
-        leds.led_lamp[0][lineIndex].state = (map->start_nodes[lineIndex] != 0) ? lamp_state_on : lamp_state_off;
-        leds.led_lamp[1][lineIndex].state = (lineIndex == map->line_end_goal) ? lamp_state_on : lamp_state_off;
+        leds.led_lamp[lineIndex][0].state = (map->start_nodes[lineIndex] != 0) ? lamp_state_on : lamp_state_off;
+        leds.led_lamp[lineIndex][1].state = (lineIndex == map->line_end_goal) ? lamp_state_on : lamp_state_off;
     }
+       Serial.println("\t");
+        Serial.println("\t");
+        Serial.println("\t");
 
+    
+    while(servo_ctrl_update(servos));
     led_controller_update(&leds);
-    while(servo_ctrl_update(servos)){};
 }
 
 void markActiveSegments(
@@ -582,6 +605,33 @@ void get_controls_status(rotary_enc_t* rotary) {
         change_position_flag = true;
     }
     // if no button played for a long time stop playing sound ???
+}
+
+
+void init_level(unsigned char current_level)
+{
+    for (int lineIndex = 0; lineIndex < NO_OF_STATIC_LEDBARS_LINES; ++lineIndex) {
+        for (int columnIndex = 0; columnIndex < NO_OF_STATIC_LEDBARS_PER_LINE; ++columnIndex) {
+
+            leds.ledbar_static[lineIndex][columnIndex].state = lamp_state_off;
+        }
+        for (int columnIndex = 0; columnIndex < NO_OF_SWITCH_LEDS_PER_LINE; ++columnIndex) {
+            servos[lineIndex * 5 + columnIndex].position =servo_pos_center;
+            leds.ledbar_switch[lineIndex][columnIndex].state=lamp_state_off;
+        }
+        leds.led_lamp[lineIndex][0].state = lamp_state_off;
+        leds.led_lamp[lineIndex][1].state = lamp_state_off;
+    }
+    
+    led_controller_update(&leds);
+    nixie_controller_diplay_number(NIXIE_OFF);
+    for(int i=0; i<100; i++)
+    {
+        time_display_set_time( i, 100); //move the needle slowly to 100%
+        delay(20);
+    }
+    while(servo_ctrl_update(servos));
+    nixie_controller_flash_number(current_level+1);//current level starts from 0
 }
 
 void shutDownDevice() {
@@ -659,9 +709,9 @@ void init_mui_structures(userInterface_t** gui) {
     (*gui)->initControls        = initRotaryEncoder;
     (*gui)->drawLevel           = drawLevel;
     (*gui)->appendInfo          = appendInfo;
+    (*gui)->init_level          = init_level;
     (*gui)->get_controls_status = get_controls_status;
     (*gui)->terminate           = shutDownDevice;
-
  //   temp_test();
 }
 
@@ -669,6 +719,10 @@ void init_mui_structures(userInterface_t** gui) {
 void test_peripherals() {
     led_controller_test(&leds);
     nixie_controller_test();
+    for (int i = 0; i < 100; ++i) {
+        time_display_set_time(i, 100);
+        delay(50);
+    }
     servo_ctrl_test(servos);
 }
 

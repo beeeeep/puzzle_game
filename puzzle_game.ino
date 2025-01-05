@@ -15,7 +15,7 @@ void setup() {
     Serial.begin(115200);
     Serial.print("Started setting it up\n");
     init_mui_structures(&my_ui);
-    init_wifi(ssid, password, host);
+ //   init_wifi(ssid, password, host);
     initializationCheck = puzzleGameInit(&game_state, init_mui_structures) == SUCCESS;
     Serial.print("Finished setting it up\n");
 }
@@ -26,7 +26,7 @@ void loop() {
    {
      puzzleGameMainIteration(&game_state);
   }
-  webota.handle();
+ // webota.handle();
 }
 
 // void terminate() {

@@ -440,7 +440,8 @@ void switches_distribute_power(map_t *map)
         has_power = (*switches)[prevLineIndex][col].has_power;
         (*switches)[lineIndex][col+1].has_power = has_power;
     }
-    switch ((*switches)[lineIndex][NO_OF_SWITCHES_PER_LINE -1].position) // for the final switch of the line
+    const int lastCollumn = NO_OF_SWITCHES_PER_LINE -1;
+    switch ((*switches)[lineIndex][lastCollumn].position) // for the final switch of the line
     {
         case mid_switch:
             break;
@@ -451,7 +452,7 @@ void switches_distribute_power(map_t *map)
             }
             else
             {
-                LOG_ERROR("Invalid switch position[%d,%d] %d",lineIndex, col, (int) (*switches)[lineIndex][col].position);
+                LOG_ERROR("Invalid switch position[%d,%d] %d",lineIndex, lastCollumn, (int) (*switches)[lineIndex][lastCollumn].position);
             }
             break;
         case high_switch:
@@ -461,15 +462,15 @@ void switches_distribute_power(map_t *map)
             }
             else
             {
-                LOG_ERROR("Invalid switch position[%d,%d] %d",lineIndex, col, (int) (*switches)[lineIndex][col].position);
+                LOG_ERROR("Invalid switch position[%d,%d] %d",lineIndex, lastCollumn, (int) (*switches)[lineIndex][lastCollumn].position);
             }
             break;
         default:
-            LOG_WARNING("Invalid switch position %d",(int) (*switches)[lineIndex][col].position);
+            LOG_WARNING("Invalid switch position %d",(int) (*switches)[lineIndex][lastCollumn].position);
             break;
     }
     end_nodes[lineIndex] = 1; // Power always reaches the final column
-    LOG_INFO("Finished distributing power");
+   // LOG_INFO("Finished distributing power");
 }
 
 function_status_t switches_control(game_state_t* game_state, int *button_pushed_flag)
@@ -512,6 +513,8 @@ function_status_t switches_control(game_state_t* game_state, int *button_pushed_
             if (possibleSwitchPositions[currentSwitch->position] == 1)
             {
                 (*switches)[currentSwitch->binded_switch_index.line][currentSwitch->binded_switch_index.column].position = currentSwitch->position;
+            //     (*switches)[currentSwitch->binded_switch_index.line][currentSwitch->binded_switch_index.column].position =
+            //     getNextSwitchPosition(possibleSwitchPositions, &(*switches)[currentSwitch->binded_switch_index.line][currentSwitch->binded_switch_index.column]);
             }
         }
     }
@@ -547,30 +550,14 @@ int getNextSwitchPosition(int possibleSwitchPositions[3], const int current_posi
 
 function_status_t switches_time_calculate(long long current_time, unsigned int max_time_in_ms, unsigned char time_count_active_flag, int *result)
 {
+
     int elapsed_time_ms = current_time - switches_timestamp;
     if (max_time_in_ms <= 0)
     {
         LOG_ERROR("max_time_in_sec and fraction_of_max_time must be positive values.");
         return FAILURE; // Return an error value
     }
-
-    float percentage_elapsed = (elapsed_time_ms / (float)max_time_in_ms) * 10.0f;
-
-    // Clamp the result to the range 0-100
-    if (percentage_elapsed <= 1.0f)
-    {
-        *result = 9;
-        return SUCCESS;
-    }
-    else if (percentage_elapsed >= 10.0f)
-    {
-        switches_timestamp = current_time;
-        *result = 9;
-        return SUCCESS;
-
-    }
-
-    *result = (int)(10 - percentage_elapsed);
+    *result=(max_time_in_ms-elapsed_time_ms);
     return SUCCESS;
 }
 
