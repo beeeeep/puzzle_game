@@ -65,7 +65,6 @@ function_status_t puzzleGameMainIteration(game_state_t* game_state)
       {
          LOG_INFO("Game win %d,%d,%d,%d,%d", (int)game_state->map.end_nodes[0], (int)game_state->map.end_nodes[1], (int)game_state->map.end_nodes[2], (int)game_state->map.end_nodes[3], (int)game_state->map.end_nodes[4]); 
          game_state->current_level++;
-         sleep(5);
       }
       else
       {
@@ -97,4 +96,23 @@ function_status_t puzzleGameTermination(void (*delete_ui_structures)(userInterfa
 bool has_player_won_level(const int end_nodes[], const int end_goal)
 {
    return end_nodes[end_goal] == 1;
+}
+
+
+void debugPrint()
+{
+   // FILE* file = fopen("win.txt", "w");
+   // fprintf(file, "win %d\n", game_state->map.line_end_goal);
+   // for(int i = 0; i < 5; i++)
+   // {
+   //    fprintf(file, "%d===", game_state->map.start_nodes[i]);
+   //    for(int j =0; j < 5; j++)
+   //    {
+   //       fprintf(file, "%d,", game_state->map.switches[i][j].position);
+   //    }
+   //    fprintf(file, "--->%d\n", game_state->map.end_nodes[i]);
+   // }
+   // fclose(file);
+
+
 }

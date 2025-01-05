@@ -11,6 +11,8 @@ extern "C" {
 #define LOG_CHANNGEL stderr
 #endif
 
+#define VOID_FUNCTION(...) { }
+
 #ifndef PRINT_FUNCTION
 #define PRINT_FUNCTION(...) fprintf(LOG_CHANNGEL, ##__VA_ARGS__)
 #endif
