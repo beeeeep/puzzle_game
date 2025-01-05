@@ -76,10 +76,10 @@ function_status_t switches_init(game_state_t* game_state)
     int current_level = game_state->current_level;
     const int numMovementsPerLevel[] = 
     {
-        1, 1, 1, 1, 1,
-        2, 2, 2, 2, 2,
-        3, 3, 3, 3, 3,
-        4, 4, 4, 4, 4
+        1, 1, 2, 2, 3,
+        3, 4, 4, 5, 5,
+        6, 6, 7, 7, 8,
+        8, 9, 9, 10, 10
     };
     // Pick a random path for the current level
     default_init_switces(map->switches, NO_OF_3_WAY_LINES, NO_OF_SWITCHES_PER_LINE);
