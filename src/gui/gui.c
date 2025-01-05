@@ -296,11 +296,17 @@ void terminateNcursesTerminal()
   endwin();
 }
 
+void initLevel(unsigned char current_level)
+{
+  // do nothing
+}
+
 void init_gui_structures(userInterface_t** gui)
 {
   *gui = (userInterface_t*)malloc(sizeof(userInterface_t));
   (*gui)->initVisuals = initTerminalScreen;
   (*gui)->initControls = initKeyboard;
+  (*gui)->init_level = initLevel;
   (*gui)->drawLevel = print;
   (*gui)->appendInfo = appendInfo;
   (*gui)->get_controls_status = translateKeyboardKeyToRotaryEncoder;
