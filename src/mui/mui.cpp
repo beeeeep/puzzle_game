@@ -501,9 +501,11 @@ void drawLevel(map_t* map) {
     }
     for (int lineIndex = 0; lineIndex < NO_OF_STATIC_LEDBARS_LINES; ++lineIndex) {
         for (int columnIndex = 0; columnIndex < NO_OF_STATIC_LEDBARS_PER_LINE; ++columnIndex) {
-            leds.ledbar_static[columnIndex][lineIndex].state_prev = leds.ledbar_static[columnIndex][lineIndex].state;
-            leds.ledbar_static[columnIndex][lineIndex].state =
-                (activeSegments[lineIndex][columnIndex] != 0) ? lamp_state_on : lamp_state_off;
+            const new_state = (activeSegments[lineIndex][columnIndex] != 0) ? lamp_state_on : lamp_state_off; 
+            if (leds.ledbar_static[columnIndex][lineIndex].state != new_state) {
+                leds.ledbar_static[columnIndex][lineIndex].state_prev = leds.ledbar_static[columnIndex][lineIndex].state;
+                leds.ledbar_static[columnIndex][lineIndex].state = new_state;
+            }
         }
         for (int columnIndex = 0; columnIndex < NO_OF_SWITCH_LEDS_PER_LINE; ++columnIndex) {
             if ((map->switches[lineIndex][columnIndex].selected)) {
@@ -522,13 +524,8 @@ void drawLevel(map_t* map) {
                     (map->switches[lineIndex][columnIndex].has_power) ? lamp_state_on : lamp_state_off;
             }
         }
-<<<<<<< Updated upstream
         leds.led_lamp[0][lineIndex].state = (map->start_nodes[lineIndex] != 0) ? lamp_state_on : lamp_state_off;
         leds.led_lamp[1][lineIndex].state = (lineIndex == map->line_end_goal) ? lamp_state_on : lamp_state_off;
-=======
-        leds.led_lamp[lineIndex][0].state = (map->start_nodes[lineIndex] != 0) ? lamp_state_on : lamp_state_off;
-        leds.led_lamp[lineIndex][1].state = (activeSegments[lineIndex][5] != 0) ? lamp_state_on : lamp_state_off;
->>>>>>> Stashed changes
     }
 
     led_controller_update(&leds);
