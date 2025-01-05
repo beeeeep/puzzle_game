@@ -418,11 +418,19 @@ void switches_distribute_power(map_t *map)
                 {
                     lineIndex++;
                 }
+                else
+                {
+                    LOG_ERROR("Invalid switch position[%d,%d] %d",lineIndex, col, (int) (*switches)[lineIndex][col].position);
+                }
                 break;
             case high_switch:
                 if (lineIndex > 0)
                 {
                     lineIndex--;
+                }
+                else
+                {
+                    LOG_ERROR("Invalid switch position[%d,%d] %d",lineIndex, col, (int) (*switches)[lineIndex][col].position);
                 }
                 break;
             default:
@@ -431,6 +439,35 @@ void switches_distribute_power(map_t *map)
         }
         has_power = (*switches)[prevLineIndex][col].has_power;
         (*switches)[lineIndex][col+1].has_power = has_power;
+    }
+    const int lastCollumn = NO_OF_SWITCHES_PER_LINE -1;
+    switch ((*switches)[lineIndex][lastCollumn].position) // for the final switch of the line
+    {
+        case mid_switch:
+            break;
+        case low_switch:
+            if (lineIndex < NO_OF_3_WAY_LINES - 1)
+            {
+                lineIndex++;
+            }
+            else
+            {
+                LOG_ERROR("Invalid switch position[%d,%d] %d",lineIndex, lastCollumn, (int) (*switches)[lineIndex][lastCollumn].position);
+            }
+            break;
+        case high_switch:
+            if (lineIndex > 0)
+            {
+                lineIndex--;
+            }
+            else
+            {
+                LOG_ERROR("Invalid switch position[%d,%d] %d",lineIndex, lastCollumn, (int) (*switches)[lineIndex][lastCollumn].position);
+            }
+            break;
+        default:
+            LOG_WARNING("Invalid switch position %d",(int) (*switches)[lineIndex][lastCollumn].position);
+            break;
     }
     end_nodes[lineIndex] = 1; // Power always reaches the final column
    // LOG_INFO("Finished distributing power");
