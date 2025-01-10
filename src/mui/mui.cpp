@@ -8,7 +8,7 @@
 #include "src/switches/switches.h"
 #include "src/time_display/time_display.h"
 #include "src/interfaces/servo_switches.h"
-// #include "src/sound/sound_module2.h"
+#include "src/sound/sound_module2.h"
 #include <stdlib.h>
 
 #define ROTARY_A_PIN      42
@@ -39,16 +39,16 @@
 #define LED_LAMP_SER   45
 
 
-#define SOUND_MODULE_PIN_S1 0
-#define SOUND_MODULE_PIN_S2 1
-#define SOUND_MODULE_PIN_S3 2
-#define SOUND_MODULE_PIN_S6 3
+#define SOUND_MODULE_PIN_S1 36
+#define SOUND_MODULE_PIN_S2 35
+#define SOUND_MODULE_PIN_S3 0
+#define SOUND_MODULE_PIN_S6 37
 
 static PCA9685 pca9685;
 static servo_motor_t servos[NO_OF_SERVOS];
 static leds_ctrl_str_t leds;
 static rotary_t rotary;
-// static GPD2846 sound_module(SOUND_MODULE_PIN_S1, SOUND_MODULE_PIN_S2, SOUND_MODULE_PIN_S3, SOUND_MODULE_PIN_S6, 20);
+static GPD2846 sound_module(SOUND_MODULE_PIN_S1, SOUND_MODULE_PIN_S2, SOUND_MODULE_PIN_S3, SOUND_MODULE_PIN_S6, 20);
 
 static bool change_position_flag = false;
 static control_index_t control_position;
@@ -113,6 +113,13 @@ static const int ledbar_offsets[4][8] = {{
     }};
 
 // WRAPPER FUNCTIONS
+
+unsigned int random_number_seed(void)
+{
+    return (unsigned int) analogRead(6);
+}
+
+
 void nixie_init_pins(void) {
     pinMode(NIXIE_CLOCK_PIN, OUTPUT);
     pinMode(NIXIE_SER_PIN, OUTPUT);
@@ -205,8 +212,21 @@ void led_bar_static_set_state(unsigned char device_no, unsigned char channel, un
 
     digitalWrite(LED_BAR_STATIC_SER_OE, LOW);
     digitalWrite(LED_BAR_STATIC_SER_RCLK, LOW);
-    shiftOut(ser_pin, LED_BAR_STATIC_SER_SCLK, MSBFIRST, 0xFF & (led_bar_data_reg[device_no] >> 8));
-    shiftOut(ser_pin, LED_BAR_STATIC_SER_SCLK, MSBFIRST, 0xFF & led_bar_data_reg[device_no]);
+
+    for (int i = 0; i < 8; i++)  {
+        digitalWrite(LED_BAR_STATIC_SER_0, !!(led_bar_data_reg[0] & (1 << (7 - i))));
+        digitalWrite(LED_BAR_STATIC_SER_1, !!(led_bar_data_reg[1] & (1 << (7 - i))));
+        digitalWrite(LED_BAR_STATIC_SER_2, !!(led_bar_data_reg[2] & (1 << (7 - i))));
+        digitalWrite(LED_BAR_STATIC_SER_3, !!(led_bar_data_reg[3] & (1 << (7 - i))));    
+        digitalWrite(LED_BAR_STATIC_SER_SCLK, HIGH);
+        digitalWrite(LED_BAR_STATIC_SER_SCLK, LOW);        
+    }
+    
+
+    //shiftOut(ser_pin, LED_BAR_STATIC_SER_SCLK, MSBFIRST, 0xFF & (led_bar_data_reg[device_no] >> 8));
+   // shiftOut(ser_pin, LED_BAR_STATIC_SER_SCLK, MSBFIRST, 0xFF & led_bar_data_reg[device_no]);
+
+
     digitalWrite(LED_BAR_STATIC_SER_RCLK, HIGH);
 }
 
@@ -271,14 +291,14 @@ void init_servos() {
     servo_ctrl_add_device(servos, 2, 0x42, 10, 1900, 1500, 1000);
     servo_ctrl_add_device(servos, 7, 0x42, 12, 2100, 1700, 1200);
     servo_ctrl_add_device(servos, 12, 0x42, 14, 1900, 1500, 1000);
-    servo_ctrl_add_device(servos, 17, 0x42, 11, 2200, 1850, 1300);
+    servo_ctrl_add_device(servos, 17, 0x42, 11, 2200, 1800, 1300);
     servo_ctrl_add_device(servos, 22, 0x42, 13, 2450, 2100, 1600);
 
     /*15-19*/
     servo_ctrl_add_device(servos, 3, 0x40, 1, 2000, 1500, 1000);
     servo_ctrl_add_device(servos, 8, 0x40, 4, 2000, 1500, 1000);
-    servo_ctrl_add_device(servos, 13, 0x40, 2, 2000, 1500, 1000);
-    servo_ctrl_add_device(servos, 18, 0x40, 0, 2000, 1500, 1000);
+    servo_ctrl_add_device(servos, 13, 0x40, 0, 2000, 1550, 1000);
+    servo_ctrl_add_device(servos, 18, 0x40, 2, 2000, 1500, 1000);
     servo_ctrl_add_device(servos, 23, 0x40, 3, 2300, 1900, 1400);
     /*20-24*/
     servo_ctrl_add_device(servos, 4, 0x40, 5, 1950, 1450, 950);
@@ -503,14 +523,11 @@ void drawLevel(map_t* map) {
     for (int lineIndex = 0; lineIndex < NO_OF_STATIC_LEDBARS_LINES; ++lineIndex) {
 
 
-        Serial.print("| ");    
+        
         for (int columnIndex = 0; columnIndex < NO_OF_STATIC_LEDBARS_PER_LINE; ++columnIndex) {
 
             leds.ledbar_static[lineIndex][columnIndex].state = (activeSegments[lineIndex][columnIndex] == 1) ? lamp_state_on : lamp_state_off;
-            Serial.print(leds.ledbar_static[lineIndex][columnIndex].state);
-            Serial.print("\t,");
         }
-        Serial.println(" |");
         for (int columnIndex = 0; columnIndex < NO_OF_SWITCH_LEDS_PER_LINE; ++columnIndex) {
             servos[lineIndex * 5 + columnIndex].position =switch_pos_to_servo_pos(map->switches[lineIndex][columnIndex].position);
             if ((map->switches[lineIndex][columnIndex].selected)) {
@@ -526,7 +543,7 @@ void drawLevel(map_t* map) {
                 {               
                     red_binded_switch_col = map->switches[lineIndex][columnIndex].binded_switch_index.column;
                     red_binded_switch_line= map->switches[lineIndex][columnIndex].binded_switch_index.line;
-                    red_binded_switch_blink_flag=1;
+                    red_binded_switch_blink_flag=1;               
                 } 
                 else
                 {
@@ -545,9 +562,7 @@ void drawLevel(map_t* map) {
         leds.led_lamp[lineIndex][0].state = (map->start_nodes[lineIndex] != 0) ? lamp_state_on : lamp_state_off;
         leds.led_lamp[lineIndex][1].state = (lineIndex == map->line_end_goal) ? lamp_state_on : lamp_state_off;
     }
-       Serial.println("\t");
-        Serial.println("\t");
-        Serial.println("\t");
+ 
 
     
     while(servo_ctrl_update(servos));
@@ -588,12 +603,17 @@ void markActiveSegments(
 }
 
 
-void appendInfo(const int end_goal, const int time_left, const int current_level) {
+void appendInfo(const int end_goal, const int time_left,unsigned char numberOfMovements, const int current_level) {
     unsigned int max_time = switches_time_get_level_time(current_level);
     time_display_set_time((unsigned int) time_left, max_time);
-    const uint8_t numberOfMovements = (uint8_t)(current_level / 5 + 1); 
     nixie_controller_diplay_number(numberOfMovements);
     // sound_module.goToTrack(current_level / 5);
+}
+
+
+void level_win(void)
+{
+    led_controller_victory_round(&leds);
 }
 
 void get_controls_status(rotary_enc_t* rotary) {
@@ -638,87 +658,25 @@ void shutDownDevice() {
     // YOLO (literaly): No shutdown procedure
 }
 
-
-void temp_test() {
-
-
-
-
-nixie_controller_test();
-    led_controller_test(&leds);
-    for (int i = 0; i < 100; ++i) {
-        time_display_set_time(i, 100);
-        delay(50);
-    }
-    
-    servo_ctrl_test(servos);
-
-
- //   leds.ledbar_switch[0][0].state = lamp_state_blink;
- //   leds.ledbar_switch[0][1].state = lamp_state_on;
- //   static rotary_t rotary_status;
-//
- //   static int index_col;
-//
- //   while (1) {
- //       led_controller_update(&leds);
- //       // Serial.print(leds.ledbar_switch[0][0].blink_state);
- //       // Serial.print("\t");
- //       //   Serial.println(leds.ledbar_switch[0][0].blink_power);
- //       nixie_controller_diplay_number(leds.ledbar_switch[0][0].blink_state);
-//
- //       if (leds.ledbar_switch[0][0].blink_power > 0) {
- //           // time_display_set_time(leds.ledbar_switch[0][0].blink_power, MAX_POWER);
- //           rotary_status.direction = 0;
- //       }
- //       Rotary_get_status(&rotary_status);
-//
- //       if (rotary_status.direction != 0) {
- //           Serial.print(test_a_value);
- //           Serial.print("\t");
- //           Serial.print(test_b_value);
- //           Serial.print("\t");
- //           Serial.print(test_button_read);
- //           Serial.print("\t");
- //           Serial.print(rotary_status.direction);
- //           Serial.print("\t");
- //           Serial.println(rotary_status.button);
- //           test_a_read      = 0;
- //           test_b_read      = 0;
- //           test_button_read = 0;
- //       }
-//
-//
- //       if (rotary_status.direction == 1) {
- //           leds.ledbar_switch[0][index_col].state = lamp_state_off;
- //           index_col                              = 1;
- //           leds.ledbar_switch[0][index_col].state = lamp_state_on;
- //       } else if (rotary_status.direction == -1) {
- //           leds.ledbar_switch[0][index_col].state = lamp_state_off;
-//
-//
- //           index_col                              = 0;
- //           leds.ledbar_switch[0][index_col].state = lamp_state_on;
- //       }
- //   }
-}
-
 void init_mui_structures(userInterface_t** gui) {
     *gui                        = (userInterface_t*) malloc(sizeof(userInterface_t));
     (*gui)->initVisuals         = initVisuals;
     (*gui)->initControls        = initRotaryEncoder;
+    (*gui)->RandomNumberSeed    = random_number_seed;
     (*gui)->drawLevel           = drawLevel;
     (*gui)->appendInfo          = appendInfo;
     (*gui)->init_level          = init_level;
     (*gui)->get_controls_status = get_controls_status;
     (*gui)->terminate           = shutDownDevice;
- //   temp_test();
+    (*gui)->level_win           = level_win;
 }
 
 
 void test_peripherals() {
+    sound_module.test();
     led_controller_test(&leds);
     nixie_controller_test();
+
     for (int i = 0; i < 100; ++i) {
         time_display_set_time(i, 100);
         delay(50);

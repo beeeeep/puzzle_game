@@ -28,10 +28,10 @@ int puzzleGame(void (*init_ui_structures)(userInterface_t**), void (*delete_ui_s
 function_status_t puzzleGameInit(game_state_t* game_state, void (*init_ui_structures)(userInterface_t**))
 {
    init_game_state(game_state);
-   button_pushed_flag = 0;
-   roll_init();
-
+   button_pushed_flag = 0; 
    init_ui_structures(&ui);
+   roll_init((*ui->RandomNumberSeed)());
+   LOG_INFO("Random value:%u",(*ui->RandomNumberSeed)());
    (*ui->initVisuals)();
    (*ui->initControls)();
    (*ui->init_level)(0);
@@ -52,7 +52,7 @@ function_status_t puzzleGameMainIteration(game_state_t* game_state)
    (*ui->get_controls_status)(&game_state->rotary);
    switches_distribute_power(&game_state->map);
    switches_control(game_state, &button_pushed_flag);
-
+   switches_distribute_power(&game_state->map);
    if (game_state->current_level == 0 && button_pushed_flag == 0)
    {
       switches_time_reset(millis_timestamp());     
@@ -61,19 +61,20 @@ function_status_t puzzleGameMainIteration(game_state_t* game_state)
       switches_time_calculate(millis_timestamp(), switches_time_get_level_time(game_state->current_level % 20), 1, &game_state->time_left));
   
    (*ui->drawLevel)(&game_state->map);
-   (*ui->appendInfo)(game_state->map.line_end_goal, game_state->time_left, game_state->current_level);
+   (*ui->appendInfo)(game_state->map.line_end_goal, game_state->time_left,game_state->movements_left, game_state->current_level);
    const bool win = has_player_won_level(game_state->map.end_nodes, game_state->map.line_end_goal);
    
-   if (win || game_state->time_left <= 0)
+   if (win || game_state->time_left <= 0 || game_state->movements_left<=0)
    {
       if (win)
       {
          LOG_INFO("Game win %d,%d,%d,%d,%d", (int)game_state->map.end_nodes[0], (int)game_state->map.end_nodes[1], (int)game_state->map.end_nodes[2], (int)game_state->map.end_nodes[3], (int)game_state->map.end_nodes[4]); 
          game_state->current_level++;
          (*ui->drawLevel)(&game_state->map);
-         (*ui->appendInfo)(game_state->map.line_end_goal, game_state->time_left, game_state->current_level);
+         (*ui->appendInfo)(game_state->map.line_end_goal, game_state->time_left,game_state->movements_left, game_state->current_level);  
          timestamp_ms=millis_timestamp();
-         while(millis_timestamp()-timestamp_ms<3000);
+         while(millis_timestamp()-timestamp_ms<2000);
+         (*ui->level_win)();
       }
       else
       {

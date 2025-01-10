@@ -17,7 +17,7 @@ extern "C" {
 
 
 #define BLINK_NO_OF_STEPS 50
-#define BLINK_ON_TIME_MS 500
+#define BLINK_ON_TIME_MS 300
 #define BLINK_OFF_TIME_MS 200
 
 #define BLINK_POWERING_UP_TOTAL_TIME_MS 200
@@ -34,7 +34,7 @@ extern "C" {
 #define MAX_POWER 100  
 #define MAX_BLINK_POWER 100
 
-#define LED_TEST_PERIOD 500
+#define LED_TEST_PERIOD 200
 
 typedef enum lamp_state
 {
@@ -111,6 +111,8 @@ void led_controller_update(leds_ctrl_str_t *led_controller_str);
 void led_controller_add_led_switch_device(ledbar_switch_t* ledbar_switch,unsigned int pc9685_id ,unsigned char channel);
 
 void led_controller_test(leds_ctrl_str_t* led_controller_str);
+
+void led_controller_victory_round(leds_ctrl_str_t* led_controller_str) ;
 
 #ifdef __cplusplus
 }

@@ -74,6 +74,13 @@ void GPD2846::toggleRepeat() {
     shortPress(_pinS6);
 }
 
+void GPD2846::test() {
+    goToTrack(1);
+    togglePause();
+    delay(10000);
+    togglePause();
+}
+
 void GPD2846::_highZ() {
     pinMode(_pinS1, INPUT); // pin goes to tristate
     pinMode(_pinS2, INPUT); // pin goes to tristate
@@ -82,3 +89,4 @@ void GPD2846::_highZ() {
         pinMode(_pinS6, INPUT); // pin goes to tristate
     }
 }
+
