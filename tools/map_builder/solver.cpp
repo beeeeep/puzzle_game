@@ -9,6 +9,37 @@
 #include <iostream>
 #include <map>
 #include <random>
+#include <set>
+#include <unordered_set>
+#include <utility>
+
+#include "switches/red_switches.h"
+
+
+struct pair_comparator {
+    bool operator()(const std::pair<int, int>& lhs, const std::pair<int, int>& rhs) const {
+        return lhs.first < rhs.first || (lhs.first == rhs.first && lhs.second < rhs.second);
+    }
+};
+
+std::set<std::pair<int, int>, pair_comparator> redSwitchesIndices;
+
+struct pair_hash {
+    std::size_t operator()(const std::pair<int, int>& p) const {
+        return std::hash<int>()(p.first) ^ std::hash<int>()(p.second);
+    }
+};
+
+struct pair_equal {
+    bool operator()(const std::pair<int, int>& lhs, const std::pair<int, int>& rhs) const {
+        return lhs.first == rhs.first && lhs.second == rhs.second;
+    }
+};
+
+std::unordered_set<std::pair<int, int>, pair_hash, pair_equal> redSwitchControlled;
+std::unordered_map<std::pair<int,int>, std::pair<int,int>, pair_hash, pair_equal> redSwitchesConnections;
+std::unordered_map<std::pair<int,int>, std::pair<int,int>, pair_hash, pair_equal> redSwitchesConnectionsInverted;
+
 
 #define NUM_COLS  5
 #define NUM_LINES 5
@@ -92,7 +123,7 @@ void buildZ(int8_t Z[5][6], int8_t S[5][5], int8_t startx) {
 #define __min(a, b)     (((a) < (b)) ? (a) : (b))
 #define ___min(a, b, c) __min((a), (__min(b, c)))
 #define BIG_FAT_VALUE   9
-void buildD(int8_t D[5][6], int8_t S[5][5], int8_t endx) {
+void buildD(int8_t D[5][6], const int8_t S[5][5], const int8_t endx) {
     forlines(l) {
         D[l][5] = BIG_FAT_VALUE;
     }
@@ -105,6 +136,32 @@ void buildD(int8_t D[5][6], int8_t S[5][5], int8_t endx) {
             const int d2 = D[l][c + 1] + (S[l][c] == 0 ? 0 : 1);
             const int d3 = (l > 0) ? (D[l - 1][c + 1] + (S[l][c] == 1 ? 0 : 1)) : BIG_FAT_VALUE;
             D[l][c]      = ___min(d1, d2, d3);
+        }
+    }
+}
+
+void buildDWithRedSwitches(int8_t D[5][6], const int8_t S[5][5], const int8_t SwithReds[5][5], const int8_t endx) {
+    forlines(l) {
+        D[l][5] = BIG_FAT_VALUE;
+    }
+
+    D[endx][5] = 0;
+
+    for (int c = NUM_COLS - 1; c >= 0; --c) {
+        forlines(l) {
+            if (redSwitchesIndices.find({l, c}) != redSwitchesIndices.end()) {
+                const int d1 = (l + 1 < NUM_LINES) ? (D[l + 1][c + 1] + (SwithReds[l][c] == -1 ? 0 : BIG_FAT_VALUE)) : BIG_FAT_VALUE;
+                const int d2 = D[l][c + 1] + (SwithReds[l][c] == 0 ? 0 : BIG_FAT_VALUE);
+                const int d3 = (l > 0) ? (D[l - 1][c + 1] + (SwithReds[l][c] == 1 ? 0 : BIG_FAT_VALUE)) : BIG_FAT_VALUE;
+                D[l][c]      = ___min(d1, d2, d3) + (SwithReds[l][c] != S[l][c]);
+            }
+            else {
+                const int d1 = (l + 1 < NUM_LINES) ? (D[l + 1][c + 1] + (SwithReds[l][c] == -1 ? 0 : 1)) : BIG_FAT_VALUE;
+                const int d2 = D[l][c + 1] + (SwithReds[l][c] == 0 ? 0 : 1);
+                const int d3 = (l > 0) ? (D[l - 1][c + 1] + (SwithReds[l][c] == 1 ? 0 : 1)) : BIG_FAT_VALUE;
+                D[l][c]      = ___min(d1, d2, d3) + (SwithReds[l][c] != S[l][c]);
+            }
+
         }
     }
 }
@@ -181,6 +238,36 @@ bool isMapValid(const int8_t S[NUM_LINES][NUM_COLS]) {
             }
         }
     }
+    for (int i = 0; i < NUM_RED_SWITCHES; ++i) {
+        int ri = red_switches_indices[i].line;
+        int rj = red_switches_indices[i].column;
+        auto[ri_controlled, rj_controlled] = redSwitchesConnectionsInverted[{ri,rj}];
+        if (S[ri][rj] != S[ri_controlled][rj_controlled]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool areRedSwitchesValid(const int8_t S[NUM_LINES][NUM_COLS], const int8_t redSwitches[NUM_LINES][NUM_COLS]) {
+    for (int i = 0; i < NUM_COLS; ++i) {
+        if (redSwitches[0][i] == 1 || redSwitches[NUM_LINES - 1][i] == -1) {
+            return false;
+        }
+    }
+    for (int l = 0; l < NUM_LINES - 1; ++l) {
+        for (int c = 0; c < NUM_COLS; ++c) {
+            if (redSwitches[l][c] == -1 && redSwitches[l + 1][c] == 1) {
+                return false;
+            }
+            if (S[l][c] == -1 && redSwitches[l + 1][c] == 1) {
+                return false;
+            }
+            if (redSwitches[l][c] == -1 && S[l + 1][c] == 1) {
+                return false;
+            }
+        }
+    }
     return true;
 }
 
@@ -189,9 +276,18 @@ bool forStateFunction(int8_t S[5][5], int indexNum, std::function<bool(void)> bo
     const int i = indexNum / NUM_COLS;
     const int j = indexNum % NUM_COLS;
     if (indexNum < NUM_LINES * NUM_COLS) {
-        for (S[i][j] = -1; S[i][j] <= 1; ++S[i][j]) {
+        if (redSwitchControlled.find({i, j}) != redSwitchControlled.end()) {
+            auto redSwitchControllerIndices = redSwitchesConnectionsInverted.at({i, j});
+            S[i][j] = S[redSwitchControllerIndices.first][redSwitchControllerIndices.second];
             if (!forStateFunction(S, indexNum + 1, bodyLogic)) {
                 return false;
+            }
+        }
+        else {
+            for (S[i][j] = -1; S[i][j] <= 1; ++S[i][j]) {
+                if (!forStateFunction(S, indexNum + 1, bodyLogic)) {
+                    return false;
+                }
             }
         }
     } else {
@@ -210,22 +306,39 @@ void outputMaps(const std::string fileName, int numSolutionsPerMove[5]) {
     int8_t S[5][5]        = {0};
     int index             = 0;
     uint64_t result;
-    // constexpr int64_t actualNumberOfStates = std::pow(3, 25);
     constexpr int64_t statesLimit = std::pow(2, 20);
     auto getSolutionsPerState     = [&]() {
         for (int endx = 0; endx < NUM_LINES; ++endx) {
-            int8_t D[5][6] = {0};
             int8_t t_startx, t_endx;
-            buildD(D, S, endx);
-            // printMap(D, S);
+            int firstColumn[NUM_LINES] = {BIG_FAT_VALUE};
+            for (int redSwitchStateIndex = 0; redSwitchStateIndex <  std::pow(3,NUM_RED_SWITCHES); ++redSwitchStateIndex) {
+                int8_t SwithReds[5][5] = {0};
+                int8_t D[5][6] = {0};
+                forall(i, j, SwithReds[i][j] = S[i][j];);
+                for(int i = 0; i < NUM_RED_SWITCHES; ++i) {
+                    int ri = red_switches_indices[i].line;
+                    int rj = red_switches_indices[i].column;
+                    int redSwitchVal = (redSwitchStateIndex / (int)std::pow(3, i)) % 3 - 1; // 0/0 problem
+                    SwithReds[ri][rj] = redSwitchVal;
+                    auto[ri_controlled, rj_controlled] = redSwitchesConnections[{ri,rj}];
+                    SwithReds[ri_controlled][rj_controlled] = redSwitchVal;
+                }
+                if (!isMapValid(SwithReds)) {
+                    continue;
+                }
+                buildDWithRedSwitches(D, S, SwithReds, endx);
+                forlines(l) {
+                    if (D[l][0] < firstColumn[l]) {
+                        firstColumn[l] = D[l][0];
+                    }
+                }
+            }
             for (int k = 0; k < NUM_LINES; ++k) {
                 compressMap(S, k, endx, result);
                 decompressMap(result, S, t_startx, t_endx);
-                moves[D[k][0]].write(reinterpret_cast<char*>(&result), sizeof result);
-                numSolutionsPerMove[D[k][0]]++;
-                // std::cout << (int)D[k][0] << ',';
+                moves[firstColumn[k]].write(reinterpret_cast<char*>(&result), sizeof result);
+                numSolutionsPerMove[firstColumn[k]]++;
             }
-            // std::cout << '\n';
         }
         index++;
         std::cout << '\r' << index << '/' << statesLimit << "      ";
@@ -287,9 +400,25 @@ void pickMaps(const std::string& fileName, const int numSolutionsPerMove[]) {
     delete nums;
 }
 
+void buildRedSwitchMaps() {
+    for (int i = 0; i < NUM_RED_SWITCHES; i++) {
+        redSwitchesIndices.insert({red_switches_indices[i].line, red_switches_indices[i].column});
+    }
+    for (int i = 0; i < NUM_RED_SWITCHES; i++) {
+        redSwitchControlled.insert({red_switch_controlled[i].line, red_switch_controlled[i].column});
+    }
+    for (int i = 0; i < NUM_RED_SWITCHES; ++i) {
+        redSwitchesConnections[{red_switches_connections[i].line_a, red_switches_connections[i].col_a}] = {red_switches_connections[i].line_b, red_switches_connections[i].col_b};
+    }
+    for (int i = 0; i < NUM_RED_SWITCHES; ++i) {
+        redSwitchesConnectionsInverted[{red_switches_connections[i].line_b, red_switches_connections[i].col_b}] = {red_switches_connections[i].line_a, red_switches_connections[i].col_a};
+    }
+}
+
 
 int main() {
     int numSolutionsPerMove[5] = {0};
+    buildRedSwitchMaps();
     outputMaps("moves", numSolutionsPerMove);
     std::cout << "Done making maps" << std::endl;
     pickMaps("moves", numSolutionsPerMove);
