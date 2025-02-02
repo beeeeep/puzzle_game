@@ -47,7 +47,7 @@ std::unordered_map<std::pair<int,int>, std::pair<int,int>, pair_hash, pair_equal
 #define NUM_COLS  5
 #define NUM_LINES 5
 #define NUM_FINAL_MAPS 1 << 11
-// #define OUTPUT_MAPS
+#define OUTPUT_MAPS
 
 #define __min(a, b)     (((a) < (b)) ? (a) : (b))
 #define ___min(a, b, c) __min((a), (__min(b, c)))
@@ -178,21 +178,65 @@ void buildDWithRedSwitches(int8_t D[5][6], const int8_t S[5][5], const int8_t Sw
 
     D[endx][5] = 0;
 
+    int d1,d2,d3;
+    int conflictWithSwitch = 0;
     for (int c = NUM_COLS - 1; c >= 0; --c) {
+        conflictWithSwitch = 0;
         forlines(l) {
             if (redSwitchesIndices.find({l, c}) != redSwitchesIndices.end()) {
-                const int d1 = (l + 1 < NUM_LINES) ? (D[l + 1][c + 1] + (SwithReds[l][c] == -1 ? 0 : BIG_FAT_VALUE)) : BIG_FAT_VALUE;
-                const int d2 = D[l][c + 1] + (SwithReds[l][c] == 0 ? 0 : BIG_FAT_VALUE);
-                const int d3 = (l > 0) ? (D[l - 1][c + 1] + (SwithReds[l][c] == 1 ? 0 : BIG_FAT_VALUE)) : BIG_FAT_VALUE;
-                D[l][c]      = ___min(d1, d2, d3) + (SwithReds[l][c] != S[l][c]);
+                if (l + 1 < NUM_LINES && SwithReds[l][c] == -1)
+                {
+                    d1 = D[l + 1][c + 1];
+                }
+                else
+                {
+                    d1 = BIG_FAT_VALUE;
+                }
+                if (SwithReds[l][c] == 0)
+                {
+                    d2 = D[l][c + 1];
+                }
+                else
+                {
+                    d2 = BIG_FAT_VALUE;
+                }
+                if (l > 0 && SwithReds[l][c] == 1)
+                {
+                    d3 = D[l - 1][c + 1];
+                }
+                else
+                {
+                    d3 = BIG_FAT_VALUE;
+                }
+            } else {
+                if (l + 1 < NUM_LINES) {
+                    if (l + 2 < NUM_LINES)
+                    {
+                        conflictWithSwitch = (SwithReds[l+1][c] == 1)?1:0;
+                    }
+                    d1 = D[l + 1][c + 1] + abs(SwithReds[l][c] - (-1)) + conflictWithSwitch;
+                } else {
+                    d1 = BIG_FAT_VALUE;
+                }
+                d2 = D[l][c + 1] + abs(SwithReds[l][c] - 0);
+                if (l > 0)
+                {
+                    if (l > 1)
+                    {
+                        conflictWithSwitch = (SwithReds[l-1][c] == -1)?1:0;
+                    }
+                    else
+                    {
+                        conflictWithSwitch = 0;
+                    }
+                    d3 = D[l - 1][c + 1] + abs(SwithReds[l][c] - 1) + conflictWithSwitch;
+                }
+                else
+                {
+                    d3 = BIG_FAT_VALUE;
+                }
             }
-            else {
-                const int d1 = (l + 1 < NUM_LINES) ? (D[l + 1][c + 1] + (SwithReds[l][c] == -1 ? 0 : 1)) : BIG_FAT_VALUE;
-                const int d2 = D[l][c + 1] + (SwithReds[l][c] == 0 ? 0 : 1);
-                const int d3 = (l > 0) ? (D[l - 1][c + 1] + (SwithReds[l][c] == 1 ? 0 : 1)) : BIG_FAT_VALUE;
-                D[l][c]      = ___min(d1, d2, d3) + (SwithReds[l][c] != S[l][c]);
-            }
-
+            D[l][c]      = ___min(d1, d2, d3);
         }
     }
 }
@@ -349,14 +393,18 @@ void outputMaps(const std::string fileName, int numSolutionsPerMove[5]) {
             for (int redSwitchStateIndex = 0; redSwitchStateIndex <  std::pow(3,NUM_RED_SWITCHES); ++redSwitchStateIndex) {
                 int8_t SwithReds[5][5] = {0};
                 int8_t D[5][6] = {0};
+                int count_extra_moves_due_to_red = 0;
                 forall(i, j, SwithReds[i][j] = S[i][j];);
                 for(int i = 0; i < NUM_RED_SWITCHES; ++i) {
                     int ri = red_switches_indices[i].line;
                     int rj = red_switches_indices[i].column;
-                    int redSwitchVal = (redSwitchStateIndex / (int)std::pow(3, i)) % 3 - 1; // 0/0 problem
+                    int redSwitchVal = (redSwitchStateIndex / (int)std::pow(3, i)) % 3 - 1;
                     SwithReds[ri][rj] = redSwitchVal;
                     auto[ri_controlled, rj_controlled] = redSwitchesConnections[{ri,rj}];
                     SwithReds[ri_controlled][rj_controlled] = redSwitchVal;
+                    if (redSwitchVal != S[ri][rj]) {
+                        count_extra_moves_due_to_red++;
+                    }
                 }
                 if (!isMapValid(SwithReds)) {
                     continue;
@@ -364,7 +412,7 @@ void outputMaps(const std::string fileName, int numSolutionsPerMove[5]) {
                 buildDWithRedSwitches(D, S, SwithReds, endx);
                 forlines(l) {
                     if (D[l][0] < firstColumn[l]) {
-                        firstColumn[l] = D[l][0];
+                        firstColumn[l] = D[l][0] + count_extra_moves_due_to_red;
                     }
                 }
             }
@@ -468,7 +516,6 @@ void buildRedSwitchMaps() {
 
 
 int main() {
-    int numSolutionsPerMove[5] = {0};
     buildRedSwitchMaps();
     #ifdef OUTPUT_MAPS
         int numSolutionsPerMove[10] = {0};
