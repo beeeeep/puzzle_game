@@ -12,6 +12,7 @@ class GPD2846
     void volumeDown();
     void togglePause();
     void toggleRepeat();
+    void test();
   private:
     void next();
     void previous();

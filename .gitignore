@@ -4,3 +4,8 @@ puzzle
 *.dll
 build/
 tools/validateMapFiles
+src/ota/credentials.h
+Untitled Diagram.drawio
+tools/moves8.in
+tools/moves9.in
+tools/moves10.in

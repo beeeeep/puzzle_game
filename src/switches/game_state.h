@@ -6,8 +6,8 @@
 #define NO_OF_SWITCHES_PER_LINE 5
 
 #define NO_OF_3_WAY_LINES 5
-#define MAX_GAME_TIME_IN_MS 20000
-#define MIN_GAME_TIME_IN_MS 2000
+#define MAX_GAME_TIME_IN_MS 80000
+#define MIN_GAME_TIME_IN_MS 15000
 #define MAX_GAME_MOVEMENTS 16
 #define MIN_GAME_MOVEMENTS 5
 
@@ -80,6 +80,8 @@ typedef struct game_state_t
   control_index_t control;
   rotary_enc_t rotary;
   int current_level;
+  int time_left;
+  int movements_left;
 } game_state_t;
 
 void init_game_state(game_state_t* game_state);

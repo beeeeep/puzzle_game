@@ -41,9 +41,16 @@ std::unordered_map<std::pair<int,int>, std::pair<int,int>, pair_hash, pair_equal
 std::unordered_map<std::pair<int,int>, std::pair<int,int>, pair_hash, pair_equal> redSwitchesConnectionsInverted;
 
 
+
+
+#define BIG_FAT_VALUE   9
 #define NUM_COLS  5
 #define NUM_LINES 5
+#define NUM_FINAL_MAPS 1 << 11
+// #define OUTPUT_MAPS
 
+#define __min(a, b)     (((a) < (b)) ? (a) : (b))
+#define ___min(a, b, c) __min((a), (__min(b, c)))
 #define forlines(xx) for (int xx = 0; xx < NUM_LINES; ++xx)
 #define forcols(xx)  for (int xx = 0; xx < NUM_COLS; ++xx)
 #define forall(xx, yy, kernel) \
@@ -120,9 +127,7 @@ void buildZ(int8_t Z[5][6], int8_t S[5][5], int8_t startx) {
     }
 }
 
-#define __min(a, b)     (((a) < (b)) ? (a) : (b))
-#define ___min(a, b, c) __min((a), (__min(b, c)))
-#define BIG_FAT_VALUE   9
+
 void buildD(int8_t D[5][6], const int8_t S[5][5], const int8_t endx) {
     forlines(l) {
         D[l][5] = BIG_FAT_VALUE;
@@ -130,11 +135,37 @@ void buildD(int8_t D[5][6], const int8_t S[5][5], const int8_t endx) {
 
     D[endx][5] = 0;
 
+    int d1,d2,d3;
+    int conflictWithSwitch = 0;
     for (int c = NUM_COLS - 1; c >= 0; --c) {
+        conflictWithSwitch = 0;
         forlines(l) {
-            const int d1 = (l + 1 < NUM_LINES) ? (D[l + 1][c + 1] + (S[l][c] == -1 ? 0 : 1)) : BIG_FAT_VALUE;
-            const int d2 = D[l][c + 1] + (S[l][c] == 0 ? 0 : 1);
-            const int d3 = (l > 0) ? (D[l - 1][c + 1] + (S[l][c] == 1 ? 0 : 1)) : BIG_FAT_VALUE;
+            if (l + 1 < NUM_LINES) {
+                if (l + 2 < NUM_LINES)
+                {
+                    conflictWithSwitch = (S[l+1][c] == 1)?1:0;
+                }
+                d1 = D[l + 1][c + 1] + abs(S[l][c] - (-1)) + conflictWithSwitch;
+            } else {
+                d1 = BIG_FAT_VALUE;
+            }
+            d2 = D[l][c + 1] + abs(S[l][c] - 0);
+            if (l > 0)
+            {
+                if (l > 1)
+                {
+                    conflictWithSwitch = (S[l-1][c] == -1)?1:0;
+                }
+                else
+                {
+                    conflictWithSwitch = 0;
+                }
+                d3 = D[l - 1][c + 1] + abs(S[l][c] - 1) + conflictWithSwitch;
+            }
+            else
+            {
+                d3 = BIG_FAT_VALUE;
+            }
             D[l][c]      = ___min(d1, d2, d3);
         }
     }
@@ -302,11 +333,15 @@ bool forStateFunction(int8_t S[5][5], int indexNum, std::function<bool(void)> bo
 void outputMaps(const std::string fileName, int numSolutionsPerMove[5]) {
     std::ofstream moves[] = {std::ofstream(fileName + "0.in", std::ios::binary),
         std::ofstream(fileName + "1.in", std::ios::binary), std::ofstream(fileName + "2.in", std::ios::binary),
-        std::ofstream(fileName + "3.in", std::ios::binary), std::ofstream(fileName + "4.in", std::ios::binary)};
+        std::ofstream(fileName + "3.in", std::ios::binary), std::ofstream(fileName + "4.in", std::ios::binary),
+        std::ofstream(fileName + "5.in", std::ios::binary), std::ofstream(fileName + "6.in", std::ios::binary),
+        std::ofstream(fileName + "7.in", std::ios::binary), std::ofstream(fileName + "8.in", std::ios::binary),
+        std::ofstream(fileName + "9.in", std::ios::binary), std::ofstream(fileName + "10.in", std::ios::binary)};
     int8_t S[5][5]        = {0};
     int index             = 0;
     uint64_t result;
-    constexpr int64_t statesLimit = std::pow(2, 20);
+    // constexpr int64_t actualNumberOfStates = std::pow(3, 25);
+    constexpr int64_t statesLimit = std::pow(2, 25);
     auto getSolutionsPerState     = [&]() {
         for (int endx = 0; endx < NUM_LINES; ++endx) {
             int8_t t_startx, t_endx;
@@ -346,7 +381,7 @@ void outputMaps(const std::string fileName, int numSolutionsPerMove[5]) {
     };
     forStateFunction(S, 0, getSolutionsPerState);
     std::ofstream numMovementsFile("numMovements.txt");
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < 11; ++i) {
         numMovementsFile << i << "-->" << numSolutionsPerMove[i] << "\n";
     }
     numMovementsFile.flush();
@@ -358,44 +393,60 @@ void pickMaps(const std::string& fileName, const int numSolutionsPerMove[]) {
         std::ifstream(fileName + "2.in", std::ios::binary),
         std::ifstream(fileName + "3.in", std::ios::binary),
         std::ifstream(fileName + "4.in", std::ios::binary),
+        std::ifstream(fileName + "5.in", std::ios::binary),
+        std::ifstream(fileName + "6.in", std::ios::binary),
+        std::ifstream(fileName + "7.in", std::ios::binary),
+        std::ifstream(fileName + "8.in", std::ios::binary),
+        std::ifstream(fileName + "9.in", std::ios::binary),
+        std::ifstream(fileName + "10.in", std::ios::binary),
     };
     std::ofstream movesOut[] = {
-        std::ofstream(fileName + "1_final.in", std::ios::binary),
-        std::ofstream(fileName + "2_final.in", std::ios::binary),
-        std::ofstream(fileName + "3_final.in", std::ios::binary),
-        std::ofstream(fileName + "4_final.in", std::ios::binary),
+        std::ofstream(fileName + "1_final.in"),
+        std::ofstream(fileName + "2_final.in"),
+        std::ofstream(fileName + "3_final.in"),
+        std::ofstream(fileName + "4_final.in"),
+        std::ofstream(fileName + "5_final.in"),
+        std::ofstream(fileName + "6_final.in"),
+        std::ofstream(fileName + "7_final.in"),
+        std::ofstream(fileName + "8_final.in"),
+        std::ofstream(fileName + "9_final.in"),
+        std::ofstream(fileName + "10_final.in"),
     };
-
-    const int finalNumberOfMaps        = *std::min_element(numSolutionsPerMove, numSolutionsPerMove + 5);
-    const int numberOfMapsPerMovements = std::min(1 << 16, finalNumberOfMaps);
+    {
+        movesOut[0] << "uint64_t moves1[]={";
+        movesOut[1] << "uint64_t moves2[]={";
+        movesOut[2] << "uint64_t moves3[]={";
+        movesOut[3] << "uint64_t moves4[]={";
+        movesOut[4] << "uint64_t moves5[]={";
+        movesOut[5] << "uint64_t moves6[]={";
+        movesOut[6] << "uint64_t moves7[]={";
+        movesOut[7] << "uint64_t moves8[]={";
+        movesOut[8] << "uint64_t moves9[]={";
+        movesOut[9] << "uint64_t moves10[]={";
+    }
+    const int finalNumberOfMaps        = *std::min_element(numSolutionsPerMove, numSolutionsPerMove + 10);
+    const int numberOfMapsPerMovements = std::min(NUM_FINAL_MAPS, finalNumberOfMaps);
     int* nums                          = new int[numberOfMapsPerMovements];
     std::random_device rd;
     std::mt19937 mte(rd());
-    std::uniform_int_distribution<int> dist(0, finalNumberOfMaps);
-    std::generate(nums, nums + numberOfMapsPerMovements, [&]() { return dist(mte); });
-    std::sort(nums, nums + numberOfMapsPerMovements);
-    int8_t t_startx = 0, t_endx = 0;
-    int8_t S[5][5] = {0};
-    for (int i = 0; i < numberOfMapsPerMovements; ++i) {
-        char buffer[4][sizeof(uint64_t)];
-        const std::streampos n = ((uint64_t) (nums[i])) * sizeof(uint64_t);
-        movesIn[0].seekg(n);
-        movesIn[0].read(buffer[0], sizeof(uint64_t));
-        uint64_t* compressedMap = reinterpret_cast<uint64_t*>(buffer[0]);
-        if (!decompressMap(*compressedMap, S, t_startx, t_endx)) {
-            break;
+    char buffer[sizeof(uint64_t)];
+    for (int j = 0; j < 10; ++j)
+    {
+        std::uniform_int_distribution<int> dist(0, numSolutionsPerMove[j]);
+        std::generate(nums, nums + numberOfMapsPerMovements, [&]() { return dist(mte); });
+        std::sort(nums, nums + numberOfMapsPerMovements);
+        for (int i = 0; i < numberOfMapsPerMovements; ++i)
+        {
+            const std::streampos n = ((uint64_t) (nums[i])) * sizeof(uint64_t);
+            // std::cout << "n=" << n << '\n';
+            movesIn[j].seekg(n);
+            movesIn[j].read(buffer, sizeof(uint64_t));
+            movesOut[j] << *reinterpret_cast<uint64_t*>(buffer) << ",";
         }
-        // std::cout << std::bitset<64>(*compressedMap) << "\n";
-        movesOut[0].write(buffer[0], sizeof(uint64_t));
-        movesIn[1].seekg(n);
-        movesIn[1].read(buffer[1], sizeof(uint64_t));
-        movesOut[1].write(buffer[1], sizeof(uint64_t));
-        movesIn[2].seekg(n);
-        movesIn[2].read(buffer[2], sizeof(uint64_t));
-        movesOut[2].write(buffer[2], sizeof(uint64_t));
-        movesIn[3].seekg(n);
-        movesIn[3].read(buffer[3], sizeof(uint64_t));
-        movesOut[3].write(buffer[3], sizeof(uint64_t));
+    }
+    for (int j = 0; j < 10; ++j)
+    {
+        movesOut[j] << "0};";
     }
     delete nums;
 }
@@ -419,7 +470,23 @@ void buildRedSwitchMaps() {
 int main() {
     int numSolutionsPerMove[5] = {0};
     buildRedSwitchMaps();
-    outputMaps("moves", numSolutionsPerMove);
+    #ifdef OUTPUT_MAPS
+        int numSolutionsPerMove[10] = {0};
+        outputMaps("moves", numSolutionsPerMove);
+    #else
+        int numSolutionsPerMove[] = {
+            281342008, 
+            221497799, 
+            108705497, 
+            48151685, 
+            19172755, 
+            6757898, 
+            1975830, 
+            453294, 
+            75670,
+            48
+        };
+    #endif
     std::cout << "Done making maps" << std::endl;
     pickMaps("moves", numSolutionsPerMove);
     std::cout << "Done picking maps" << std::endl;

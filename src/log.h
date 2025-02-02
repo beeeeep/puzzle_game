@@ -11,10 +11,16 @@ extern "C" {
 #define LOG_CHANNGEL stderr
 #endif
 
+#define VOID_FUNCTION(...) { }
+
+#ifndef PRINT_FUNCTION
+#define PRINT_FUNCTION(...) fprintf(LOG_CHANNGEL, ##__VA_ARGS__)
+#endif
+
 #ifdef ENABLE_LOGGING
-  #define LOG_ERROR(fmt, ...) fprintf(LOG_CHANNGEL, "[ERROR]: " fmt "\n", ##__VA_ARGS__)
-  #define LOG_WARNING(fmt, ...) fprintf(LOG_CHANNGEL, "[WARNING]: " fmt "\n", ##__VA_ARGS__)
-  #define LOG_INFO(fmt, ...) fprintf(LOG_CHANNGEL, "[INFO]: " fmt "\n", ##__VA_ARGS__)
+  #define LOG_ERROR(fmt, ...) PRINT_FUNCTION("[ERROR]: " fmt "\n", ##__VA_ARGS__)
+  #define LOG_WARNING(fmt, ...) PRINT_FUNCTION("[WARNING]: " fmt "\n", ##__VA_ARGS__)
+  #define LOG_INFO(fmt, ...) PRINT_FUNCTION("[INFO]: " fmt "\n", ##__VA_ARGS__)
 #else
   #define LOG_ERROR(fmt, ...)
   #define LOG_WARNING(fmt, ...)

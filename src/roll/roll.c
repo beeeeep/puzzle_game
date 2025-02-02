@@ -4,9 +4,9 @@
 #include <stdlib.h>
 #include <time.h>
 
-void roll_init()
+void roll_init(unsigned int  seed_value)
 {
-   srand(time(NULL));
+   srand(seed_value);
 }
 
 /**
