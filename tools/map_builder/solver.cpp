@@ -522,16 +522,17 @@ int main() {
         outputMaps("moves", numSolutionsPerMove);
     #else
         int numSolutionsPerMove[] = {
-            281342008, 
-            221497799, 
-            108705497, 
-            48151685, 
-            19172755, 
-            6757898, 
-            1975830, 
-            453294, 
-            75670,
-            48
+            12066600,
+            901680,
+            552500,
+            269620,
+            397800,
+            176800,
+            0,
+            0,
+            0,
+            0,
+            -1282345984
         };
     #endif
     std::cout << "Done making maps" << std::endl;
