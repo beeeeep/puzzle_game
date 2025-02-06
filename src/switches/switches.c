@@ -272,48 +272,14 @@ void default_init_switch(three_way_switches_array_t switches, const int line, co
     }
 }
 
-void init_red_switches(three_way_switches_array_t switches) {
-    // do not use red switches for now
-    // till the map making includes them
-    int excl_location_list[NUM_COLS]    = {99};
-    int random_col;
-    int random_line;
-    int location_concat;
-    int repeat_flag=0;
-    
-    for (int i = 0; i < NUM_COLS; i++) {
-
-        for (int i = 0; i < NUM_RED_SWITCHES; i++) {
-            const int line                   = red_switches_indices[i].line;
-            const int col                    = red_switches_indices[i].column;
-            switches[line][col].switch_color = red;
-            // switches[line][col].binded_switch_index.line = red_switches_connections[i].line_b;
-            // switches[line][col].binded_switch_index.column = red_switches_connections[i].col_b;
-            repeat_flag=0;
-
-           do {
-              random_line   = roll(0, NUM_LINES-1);
-              random_col = roll(0, NUM_COLS-1);
-
-              location_concat= random_line*10+random_col;
-
-              for(int x=0; x<NUM_COLS; x++)
-              {
-                if(location_concat==excl_location_list[x])
-                {
-                    repeat_flag=1;
-                }
-              }
-
-
-          } while ((random_col == random_line) && repeat_flag==1);
-
-
-            switches[line][col].binded_switch_index.line   = random_line;
-            switches[line][col].binded_switch_index.column = random_col;
-            excl_location_list[i]=location_concat;
+void init_red_switches(three_way_switches_array_t switches) {    
+    for (int red_switch_index = 0; red_switch_index < NUM_RED_SWITCHES; red_switch_index++) {
+        const int line                   = red_switches_indices[red_switch_index].line;
+        const int col                    = red_switches_indices[red_switch_index].column;
+        switches[line][col].switch_color = red;
+        switches[line][col].binded_switch_index.line = red_switches_connections[red_switch_index].line_b;
+        switches[line][col].binded_switch_index.column = red_switches_connections[red_switch_index].col_b;
     }
-}
 }
 function_status_t switches_randomize_possition(three_way_switch_t switches[NO_OF_3_WAY_LINES][NO_OF_SWITCHES_PER_LINE],
     int end_nodes[NO_OF_3_WAY_LINES], int end_goal) {
@@ -497,36 +463,30 @@ function_status_t switches_control(game_state_t* game_state, int* button_pushed_
         *button_pushed_flag = 1;
         int possibleSwitchPositions[3];
         getPossibleSwitchPositions((*switches), control->line, control->column, possibleSwitchPositions);
-        currentSwitch->position = getNextSwitchPosition(possibleSwitchPositions, currentSwitch->position);
 
+        // if the switch is red
+        if (currentSwitch->switch_color == red) {
+            // change the position of the binded switch if able
+            int possibleRedSwitchPositions[3];
+            getPossibleSwitchPositions((*switches), currentSwitch->binded_switch_index.line,
+                currentSwitch->binded_switch_index.column, possibleRedSwitchPositions);
+            possibleSwitchPositions[0] &= possibleRedSwitchPositions[0];
+            possibleSwitchPositions[1] &= possibleRedSwitchPositions[1];
+            possibleSwitchPositions[2] &= possibleRedSwitchPositions[2];
+        }
+        currentSwitch->position = getNextSwitchPosition(possibleSwitchPositions, currentSwitch->position);
+        if (currentSwitch->switch_color == red) {
+            // change the position of the binded switch to accordinate to the red switch
+            three_way_switch_t* bindedSwitch = &(*switches)[currentSwitch->binded_switch_index.line][currentSwitch->binded_switch_index.column];
+            bindedSwitch->position = currentSwitch->position;
+        }
         if (possibleSwitchPositions[0] != 0 || possibleSwitchPositions[2] != 0) {
             switch_moved = 1;
             line_prev    = control->line;
             col_prev     = control->column;
             game_state->movements_left--;
         }
-        // if the switch is red
-        if (currentSwitch->switch_color == red) {
-            // change the position of the binded switch if able
-            getPossibleSwitchPositions((*switches), currentSwitch->binded_switch_index.line,
-                currentSwitch->binded_switch_index.column, possibleSwitchPositions);
-            if (possibleSwitchPositions[currentSwitch->position] == 1) {
-                (*switches)[currentSwitch->binded_switch_index.line][currentSwitch->binded_switch_index.column]
-                    .position = currentSwitch->position;
-                //     (*switches)[currentSwitch->binded_switch_index.line][currentSwitch->binded_switch_index.column].position
-                //     = getNextSwitchPosition(possibleSwitchPositions,
-                //     &(*switches)[currentSwitch->binded_switch_index.line][currentSwitch->binded_switch_index.column]);
-            }
-        }
     }
-
-    // if(switch_moved &&  (control->line!=line_prev ||  control->column!=col_prev))
-    // {
-    // game_state->movements_left--;
-    // switch_moved=0;
-    // }
-
-
     return SUCCESS;
 }
 

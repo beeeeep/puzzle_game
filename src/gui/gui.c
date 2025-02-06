@@ -301,6 +301,11 @@ void initLevel(unsigned char current_level)
   // do nothing
 }
 
+unsigned int randomNumberSeed()
+{
+  return 777;
+}
+
 void init_gui_structures(userInterface_t** gui)
 {
   *gui = (userInterface_t*)malloc(sizeof(userInterface_t));
@@ -311,6 +316,7 @@ void init_gui_structures(userInterface_t** gui)
   (*gui)->appendInfo = appendInfo;
   (*gui)->get_controls_status = translateKeyboardKeyToRotaryEncoder;
   (*gui)->terminate = terminateNcursesTerminal;
+  (*gui)->RandomNumberSeed = randomNumberSeed;
 }
 
 void delete_gui_structures(userInterface_t** gui)
