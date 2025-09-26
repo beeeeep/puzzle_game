@@ -96,6 +96,22 @@ void buildZ(int8_t Z[5][6], int8_t S[5][5], int8_t startx) {
     }
 }
 
+int switchDistance(const int switchPosCurrent, const int switchPosDesired)
+{
+    if (switchPosCurrent == switchPosDesired)
+    {
+        return 0;
+    }
+    
+    if (switchPosCurrent == 0 && switchPosDesired == -1)
+    {
+        return 2;
+    }
+    return 1;
+}
+
+// conflictWithSwitch is 1 if the switch in the next line is in conflict with the current line switch
+// we don't account for more than one conflict
 
 void buildD(int8_t D[5][6], int8_t S[5][5], int8_t endx) {
     forlines(l) {
@@ -114,11 +130,11 @@ void buildD(int8_t D[5][6], int8_t S[5][5], int8_t endx) {
                 {
                     conflictWithSwitch = (S[l+1][c] == 1)?1:0;
                 }
-                d1 = D[l + 1][c + 1] + abs(S[l][c] - (-1)) + conflictWithSwitch;
+                d1 = D[l + 1][c + 1] + switchDistance(S[l][c], -1) + conflictWithSwitch;
             } else {
                 d1 = BIG_FAT_VALUE;
             }
-            d2 = D[l][c + 1] + abs(S[l][c] - 0);
+            d2 = D[l][c + 1] + switchDistance(S[l][c], 0);
             if (l > 0)
             {
                 if (l > 1)
@@ -129,7 +145,7 @@ void buildD(int8_t D[5][6], int8_t S[5][5], int8_t endx) {
                 {
                     conflictWithSwitch = 0;
                 }
-                d3 = D[l - 1][c + 1] + abs(S[l][c] - 1) + conflictWithSwitch;
+                d3 = D[l - 1][c + 1] + switchDistance(S[l][c], 1) + conflictWithSwitch;
             }
             else
             {
